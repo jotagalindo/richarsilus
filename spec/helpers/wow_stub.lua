@@ -5,8 +5,24 @@ local stub = {}
 local Region = {}
 Region.__index = Region
 
-local function newRegion(kind)
-  return setmetatable({ kind = kind, scripts = {}, shown = true, enabled = true, text = nil, events = {} }, Region)
+-- Además del estado, cada región guarda su diseño (padre, plantilla, tamaño, anclaje, alineación)
+-- para que tools/ui-preview pueda dibujar la ventana tal y como la construye el addon.
+local function newRegion(kind, parent, template)
+  local region = setmetatable({
+    kind = kind,
+    parent = parent,
+    template = template,
+    children = {},
+    scripts = {},
+    shown = true,
+    enabled = true,
+    text = nil,
+    events = {},
+  }, Region)
+  if parent then
+    parent.children[#parent.children + 1] = region
+  end
+  return region
 end
 
 function Region:SetScript(name, handler) self.scripts[name] = handler end
@@ -30,22 +46,35 @@ function Region:Disable() self.enabled = false end
 function Region:SetEnabled(enabled) self.enabled = enabled and true or false end
 function Region:IsEnabled() return self.enabled end
 function Region:SetPoint(...) self.point = { ... } end
-function Region:ClearAllPoints() self.point = nil end
+function Region:ClearAllPoints()
+  self.point = nil
+  self.allPoints = nil
+end
+function Region:SetAllPoints() self.allPoints = true end
+function Region:SetSize(width, height)
+  self.width = width
+  self.height = height
+end
+function Region:SetWidth(width) self.width = width end
+function Region:SetJustifyH(justify) self.justifyH = justify end
+function Region:SetJustifyV(justify) self.justifyV = justify end
+function Region:SetSpacing(spacing) self.spacing = spacing end
+function Region:SetWordWrap(wordWrap) self.wordWrap = wordWrap end
+function Region:SetColorTexture(red, green, blue, alpha) self.color = { red, green, blue, alpha or 1 } end
 function Region:RegisterEvent(event)
   self.events[event] = true
   stub.eventFrames[#stub.eventFrames + 1] = self
 end
-function Region.CreateFontString() return newRegion("FontString") end
-function Region.CreateTexture() return newRegion("Texture") end
+function Region:CreateFontString(_, _, template) return newRegion("FontString", self, template) end
+function Region:CreateTexture() return newRegion("Texture", self) end
 function Region:Click(...)
   assert(self.enabled, "clicked a disabled button: " .. tostring(self.text))
   self.scripts.OnClick(self, ...)
 end
 
 local NO_OPS = {
-  "SetSize", "SetFrameStrata", "SetBackdrop", "SetClampedToScreen", "SetMovable", "EnableMouse",
-  "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetHighlightTexture", "SetAllPoints",
-  "SetColorTexture", "SetWidth", "SetJustifyH", "SetJustifyV", "SetSpacing", "SetWordWrap", "EnableMouseWheel",
+  "SetFrameStrata", "SetBackdrop", "SetClampedToScreen", "SetMovable", "EnableMouse",
+  "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetHighlightTexture", "EnableMouseWheel",
 }
 for _, name in ipairs(NO_OPS) do
   Region[name] = function() end
@@ -66,8 +95,8 @@ function stub.install(options)
     end
   end
 
-  _G.CreateFrame = function(kind, name)
-    local region = newRegion(kind)
+  _G.CreateFrame = function(kind, name, parent, template)
+    local region = newRegion(kind, parent, template)
     if name then
       _G[name] = region
     end

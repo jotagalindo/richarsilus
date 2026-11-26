@@ -1,6 +1,9 @@
 # Paquetes generados por tools/package.sh
 dist/
 
+# Diseño exportado por tools/ui-preview/export.lua (las imágenes en docs/images sí se guardan)
+tools/ui-preview/scenes.js
+
 # Dependencias locales de LuaRocks
 .luarocks/
 lua_modules/

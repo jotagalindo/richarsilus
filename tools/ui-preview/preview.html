@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Richarsilus — vista previa de la interfaz</title>
+<!--
+  Dibuja la ventana del addon a partir del diseño que exporta tools/ui-preview/export.lua
+  (el addon real ejecutado sobre el cliente simulado). Escena: preview.html?scene=main | confirm
+  Es una aproximación del aspecto del juego: fuentes y texturas de Blizzard imitadas con CSS.
+-->
+<style>
+  html, body { margin: 0; background: #101010; }
+  #stage { position: relative; margin: 16px; }
+  .region { position: absolute; box-sizing: border-box; }
+  .frame {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(60, 60, 70, 0.35), transparent 70%),
+      #07070a;
+    border: 3px solid #7d7d7d;
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000, inset 0 0 0 2px #b8973f, 0 6px 24px rgba(0, 0, 0, 0.8);
+  }
+  .text {
+    font-family: "Friz Quadrata TT", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    text-shadow: 1px 1px 0 #000;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .text.nowrap { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+  .button {
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(#a3120f, #5c0606 55%, #3d0303);
+    border: 1px solid #1a0000;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 0 rgba(255, 190, 120, 0.45), inset 0 0 0 1px rgba(255, 210, 0, 0.18);
+    font-family: "Friz Quadrata TT", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: 12px; color: #ffd100; text-shadow: 1px 1px 0 #000;
+    white-space: nowrap; overflow: hidden;
+  }
+  .button.disabled {
+    background: linear-gradient(#4a3a3a, #2c2222 55%, #201818);
+    color: #7f7f7f;
+  }
+  .close {
+    background: radial-gradient(circle at 40% 35%, #c8261c, #6a0a05);
+    border: 2px solid #c9a340; border-radius: 5px;
+    color: #f2e6c8; font: bold 13px Arial, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script src="scenes.js"></script>
+<script>
+"use strict";
+
+// Fuentes de Blizzard: tamaño (px) y color.
+const FONTS = {
+  GameFontNormal: { size: 12, color: "#ffd100" },
+  GameFontNormalSmall: { size: 10, color: "#ffd100" },
+  GameFontNormalLarge: { size: 16, color: "#ffd100" },
+  GameFontHighlight: { size: 12, color: "#ffffff" },
+  GameFontHighlightSmall: { size: 10, color: "#ffffff" },
+  GameFontRedSmall: { size: 10, color: "#ff2020" },
+};
+const DEFAULT_FONT = { size: 12, color: "#ffffff" };
+const CLOSE_BUTTON_SIZE = 22;
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
+}
+
+// Convierte los códigos de color de WoW (|cAARRGGBB ... |r) en HTML.
+function wowTextToHtml(text) {
+  let html = "";
+  let open = 0;
+  const pattern = /\|c([0-9a-fA-F]{8})|\|r/g;
+  let last = 0;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    html += escapeHtml(text.slice(last, match.index));
+    if (match[1]) {
+      html += `<span style="color:#${match[1].slice(2)}">`;
+      open += 1;
+    } else if (open > 0) {
+      html += "</span>";
+      open -= 1;
+    }
+    last = pattern.lastIndex;
+  }
+  html += escapeHtml(text.slice(last));
+  return html + "</span>".repeat(open);
+}
+
+function horizontalOffset(point, width) {
+  if (point.endsWith("LEFT")) return 0;
+  if (point.endsWith("RIGHT")) return width;
+  return width / 2;
+}
+
+// En WoW la y crece hacia arriba; aquí hacia abajo.
+function verticalOffset(point, height) {
+  if (point.startsWith("TOP")) return 0;
+  if (point.startsWith("BOTTOM")) return height;
+  return height / 2;
+}
+
+function render(layout, stage) {
+  const regions = new Map(layout.regions.map((region) => [region.id, region]));
+  const elements = new Map();
+  const root = regions.get(layout.root);
+  stage.style.width = `${root.width}px`;
+  stage.style.height = `${root.height}px`;
+
+  function isVisible(region) {
+    for (let current = region; current; current = regions.get(current.parent)) {
+      if (!current.shown) return false;
+    }
+    return true;
+  }
+
+  // 1. Crear los elementos (los textos hay que medirlos antes de anclarlos).
+  const zIndex = { Texture: 1, Frame: 2, Button: 3, FontString: 4 };
+  for (const region of layout.regions) {
+    const element = document.createElement("div");
+    element.className = "region";
+    element.style.zIndex = region.id === layout.root ? 0 : zIndex[region.kind];
+    if (region.id === layout.root) {
+      element.classList.add("frame");
+    } else if (region.kind === "FontString") {
+      const font = FONTS[region.template] || DEFAULT_FONT;
+      element.classList.add("text");
+      if (region.wordWrap === false) element.classList.add("nowrap");
+      element.style.fontSize = `${font.size}px`;
+      element.style.color = font.color;
+      element.style.lineHeight = `${font.size + 3 + (region.spacing || 0)}px`;
+      element.style.textAlign = (region.justifyH || "CENTER").toLowerCase();
+      element.innerHTML = wowTextToHtml(region.text || "");
+    } else if (region.kind === "Texture" && region.color) {
+      const [red, green, blue, alpha] = region.color;
+      element.style.background = `rgba(${red * 255}, ${green * 255}, ${blue * 255}, ${alpha})`;
+    } else if (region.template === "UIPanelButtonTemplate") {
+      element.classList.add("button");
+      if (!region.enabled) element.classList.add("disabled");
+      element.innerHTML = wowTextToHtml(region.text || "");
+    } else if (region.template === "UIPanelCloseButton") {
+      element.classList.add("close");
+      element.textContent = "✕";
+    }
+    if (region.width) element.style.width = `${region.width}px`;
+    if (region.height) element.style.height = `${region.height}px`;
+    if (!isVisible(region)) element.style.display = "none";
+    stage.appendChild(element);
+    elements.set(region.id, element);
+  }
+
+  // 2. Resolver anclajes en coordenadas de la ventana.
+  const rectangles = new Map();
+  function size(region) {
+    if (region.template === "UIPanelCloseButton") {
+      return { width: CLOSE_BUTTON_SIZE, height: CLOSE_BUTTON_SIZE };
+    }
+    const element = elements.get(region.id);
+    const hidden = element.style.display === "none";
+    if (hidden) element.style.display = "";
+    const measured = { width: region.width || element.offsetWidth, height: region.height || element.offsetHeight };
+    if (hidden) element.style.display = "none";
+    return measured;
+  }
+  function rectangle(id) {
+    if (rectangles.has(id)) return rectangles.get(id);
+    const region = regions.get(id);
+    let result;
+    if (id === layout.root) {
+      result = { left: 0, top: 0, width: region.width, height: region.height };
+    } else if (region.allPoints) {
+      result = { ...rectangle(region.parent) };
+    } else if (region.point) {
+      const anchor = region.point;
+      const relative = rectangle(anchor.relativeTo);
+      const own = size(region);
+      const anchorX = relative.left + horizontalOffset(anchor.relativePoint, relative.width) + anchor.x;
+      const anchorY = relative.top + verticalOffset(anchor.relativePoint, relative.height) - anchor.y;
+      result = {
+        left: anchorX - horizontalOffset(anchor.point, own.width),
+        top: anchorY - verticalOffset(anchor.point, own.height),
+        width: own.width,
+        height: own.height,
+      };
+    } else {
+      throw new Error(`region ${id} (${region.kind}) has no anchor`);
+    }
+    rectangles.set(id, result);
+    return result;
+  }
+
+  for (const region of layout.regions) {
+    const box = rectangle(region.id);
+    const element = elements.get(region.id);
+    element.style.left = `${box.left}px`;
+    element.style.top = `${box.top}px`;
+    element.style.width = `${box.width}px`;
+    element.style.height = `${box.height}px`;
+  }
+}
+
+const sceneName = new URLSearchParams(location.search).get("scene") || "main";
+const scenes = window.RICHARSILUS_SCENES;
+if (!scenes || !scenes[sceneName]) {
+  document.body.textContent = `Escena "${sceneName}" no encontrada. Ejecuta tools/ui-preview/export.lua primero.`;
+} else {
+  render(scenes[sceneName], document.getElementById("stage"));
+}
+</script>
+</body>
+</html>

@@ -11,6 +11,52 @@ casa de subastas y vendiendo el resultado allí mismo, y te ayuda a hacerlo: un 
 - Calcula el beneficio real: venta − **comisión** de la casa de subastas − **depósito** − materiales.
 - Te arma la lista de la compra y te deja comprar, craftear y publicar con botones.
 
+## Cómo se ve
+
+![Ventana de Richarsilus con la tabla de recetas y el detalle de Elixir de la mangosta](docs/images/ui-main.png)
+
+> Las imágenes se generan con el código real del addon ejecutado sobre un cliente simulado y datos de ejemplo
+> (`tools/ui-preview`). La disposición, los textos, los cálculos y los botones activos son los del addon; los
+> precios son inventados y el estilo imita al del juego, así que en el juego cambian las fuentes y los bordes.
+
+**Arriba:** **Escanear** consulta en la subasta los materiales y productos de tus recetas. El botón de la derecha
+muestra la comisión que se aplica (5 % o 15 %, detectada por la zona) y al pulsarlo la cambia: auto → 5 % → 15 %.
+
+**Tabla:** una fila por receta, ordenadas de más a menos beneficio:
+
+| Columna | Qué indica |
+|---|---|
+| Coste | Lo que cuestan los materiales de **un** crafteo |
+| Venta | Precio al que lo publicarías (1 cobre por debajo de la subasta más barata) |
+| Beneficio / Margen | Venta − comisión − depósito − materiales, en verde si ganas y en rojo si pierdes |
+| Puedes | Cuántos crafteos puedes hacer ya con lo que llevas en las bolsas |
+
+Si no hay nadie vendiendo el producto aparece *sin venta*; si falta el precio de algún material, *sin precio*.
+
+**Detalle de la receta elegida** (clic en una fila):
+
+- **− x5 +**: aquí eliges **cuántos crafteos** quieres hacer (Mayús + clic = de 10 en 10, hasta 200). Todo lo
+  demás se recalcula para esa cantidad.
+- **Materiales**: para cada uno, cuánto necesitas, cuánto tienes, cuánto **te falta comprar** y dónde conviene
+  comprarlo (subasta o vendedor). El importe entre paréntesis es el valor de todo el material de esa línea, también
+  lo que ya tienes, valorado a precio de mercado.
+- **Resumen**: venta total, comisión, depósito, materiales y el **beneficio** final de todos los crafteos.
+
+**Botones de abajo** (cada clic hace una sola cosa):
+
+| Botón | Qué hace |
+|---|---|
+| **Comprar 4 Flor de sueño (48s)** | Compra en la subasta lo que falta del siguiente material, solo la cantidad necesaria para los crafteos elegidos y empezando por las subastas más baratas. Si falta más de un material, después de cada compra el botón pasa al siguiente. Lo que conviene comprar al vendedor no aparece aquí: se lo compras tú al vendedor. |
+| **Cancelar** | Cancela una compra o publicación a medio confirmar |
+| **Craftear 2** | Craftea lo que te permiten los materiales que llevas, hasta el número elegido (necesita la ventana de la profesión abierta) |
+| **Publicar N** | Publica todas las unidades del producto que tengas en las bolsas al precio de la columna *Venta* |
+
+Comprar va en dos clics, igual que en la interfaz de Blizzard: el primero pide el precio al servidor y el botón pasa
+a **Confirmar**; la compra se hace en el segundo. Si el precio ha subido más de un 5 %, el addon cancela y te pide
+volver a escanear.
+
+![El botón de compra pide confirmación con el precio final](docs/images/ui-confirm.png)
+
 ## Instalación
 
 1. Descarga `Richarsilus-X.Y.Z.zip` de la última [release](https://github.com/jotagalindo/richarsilus/releases) y
@@ -152,6 +198,7 @@ estable será la `1.0.0`.
 | `Core/Events.lua` | Eventos del juego |
 | `UI/MainFrame.lua` | Ventana |
 | `tools/package.sh` | Zip de la release |
+| `tools/ui-preview/` | Imágenes de la interfaz del README (`render.ps1` las regenera en `docs/images/`) |
 | `tools/Dockerfile` | Entorno de desarrollo y CI |
 
 Diseño: [docs/superpowers/specs/2026-11-26-richarsilus-design.md](docs/superpowers/specs/2026-11-26-richarsilus-design.md).

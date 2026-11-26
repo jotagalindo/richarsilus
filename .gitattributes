@@ -1,3 +1,4 @@
 # Saltos de línea LF en todos los ficheros de texto (los scripts de shell no funcionan con CRLF en Linux/CI).
 * text=auto eol=lf
 *.zip binary
+*.png binary
