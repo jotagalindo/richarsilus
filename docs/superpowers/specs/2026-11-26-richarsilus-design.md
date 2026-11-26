@@ -103,4 +103,5 @@ Todos comparten la tabla del addon (`local _, ns = ...`). La lógica pura no toc
 - Todo se ejecuta en el contenedor `tools/Dockerfile` (Lua 5.1 como el cliente).
 - CI en GitHub Actions (`.github/workflows/ci.yml`): luacheck, shellcheck, actionlint, busted y empaquetado.
 - Releases (`.github/workflows/release.yml`): una etiqueta `vX.Y.Z` igual a `## Version:` del TOC publica el zip
-  generado por `tools/package.sh`, que antes comprueba que el TOC y los ficheros `.lua` coinciden.
+  generado por `tools/package.sh`, que antes comprueba que el TOC y los ficheros `.lua` coinciden. Las versiones
+  0.x son beta (pendientes de probar en el cliente real) y se publican como prerelease.

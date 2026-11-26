@@ -1,6 +1,6 @@
 # Release: al subir una etiqueta vX.Y.Z (igual a "## Version:" del TOC) pasa luacheck y los tests,
 # empaqueta el addon y publica una release de GitHub con el zip listo para Interface\AddOns.
-# Las etiquetas con guion (v1.1.0-beta1) se publican como prerelease.
+# Se publican como prerelease (beta) las versiones 0.x (v0.0.1) y las etiquetas con guion (v1.1.0-beta1).
 name: Release
 
 on:
@@ -39,7 +39,7 @@ jobs:
           archive="dist/Richarsilus-${version}.zip"
           prerelease_flag=""
           case "$version" in
-            *-*) prerelease_flag="--prerelease" ;;
+            0.* | *-*) prerelease_flag="--prerelease" ;;
           esac
           # shellcheck disable=SC2086 # prerelease_flag is empty or a single flag
           gh release create "$GITHUB_REF_NAME" "$archive" \

@@ -120,20 +120,22 @@ misma imagen de Docker:
 
 ### Publicar una release
 
-1. Cambia `## Version:` en `Richarsilus/Richarsilus.toc` (por ejemplo a `1.0.1`) y haz commit en `main`.
+1. Cambia `## Version:` en `Richarsilus/Richarsilus.toc` (por ejemplo a `0.0.2`) y haz commit en `main`.
 2. Crea y sube la etiqueta con la misma versión:
 
    ```powershell
-   git tag v1.0.1
+   git tag v0.0.2
    ```
 
    ```powershell
-   git push origin v1.0.1
+   git push origin v0.0.2
    ```
 
 [`.github/workflows/release.yml`](.github/workflows/release.yml) pasa luacheck y los tests, comprueba que la etiqueta
-coincide con la versión del TOC, empaqueta el addon y publica la release con `Richarsilus-1.0.1.zip` y las notas
-generadas a partir de los commits. Una etiqueta con guion (`v1.1.0-beta1`) se publica como *prerelease*.
+coincide con la versión del TOC, empaqueta el addon y publica la release con `Richarsilus-0.0.2.zip` y las notas
+generadas a partir de los commits. Mientras la versión sea 0.x (fase beta, pendiente de probar en el juego) la release
+se publica como *prerelease*; lo mismo ocurre con cualquier etiqueta con guion (`v1.1.0-beta1`). La primera versión
+estable será la `1.0.0`.
 
 | Fichero | Responsabilidad |
 |---|---|
