@@ -1,0 +1,10 @@
+# Paquetes generados por tools/package.sh
+dist/
+
+# Dependencias locales de LuaRocks
+.luarocks/
+lua_modules/
+
+# Estado local de Claude Code
+.claude/settings.local.json
+.claude/worktrees/

@@ -1,5 +1,8 @@
 # Richarsilus
 
+[![CI](https://github.com/jotagalindo/richarsilus/actions/workflows/ci.yml/badge.svg)](https://github.com/jotagalindo/richarsilus/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/jotagalindo/richarsilus?include_prereleases)](https://github.com/jotagalindo/richarsilus/releases)
+
 Addon para **World of Warcraft: Forever** que te dice qué crafteos dan dinero comprando los materiales en la
 casa de subastas y vendiendo el resultado allí mismo, y te ayuda a hacerlo: un clic por acción.
 
@@ -10,9 +13,11 @@ casa de subastas y vendiendo el resultado allí mismo, y te ayuda a hacerlo: un 
 
 ## Instalación
 
-1. Copia la carpeta `Richarsilus` (la que contiene `Richarsilus.toc`) dentro de `Interface\AddOns` del cliente de
-   Forever. Para encontrarla: launcher de Battle.net → WoW: Forever → ⚙ → *Mostrar en el explorador*.
-   Si `Interface\AddOns` no existe, créala.
+1. Descarga `Richarsilus-X.Y.Z.zip` de la última [release](https://github.com/jotagalindo/richarsilus/releases) y
+   descomprímelo dentro de `Interface\AddOns` del cliente de Forever (debe quedar
+   `Interface\AddOns\Richarsilus\Richarsilus.toc`). Para encontrar la carpeta del juego: launcher de Battle.net →
+   WoW: Forever → ⚙ → *Mostrar en el explorador*. Si `Interface\AddOns` no existe, créala.
+   También puedes copiar a mano la carpeta `Richarsilus` de este repositorio.
 2. Entra en el juego y comprueba en *AddOns* (pantalla de selección de personaje) que Richarsilus está activado.
 
 ## Uso
@@ -81,8 +86,8 @@ Si algo falla, `/console scriptErrors 1` muestra los errores de Lua en pantalla.
 
 ## Desarrollo
 
-Requisitos: Docker. El contenedor trae Lua 5.1 (la versión del cliente), [busted](https://lunarmodules.github.io/busted/)
-y [luacheck](https://github.com/lunarmodules/luacheck).
+Requisitos: Docker. El contenedor trae Lua 5.1 (la versión del cliente), [busted](https://lunarmodules.github.io/busted/),
+[luacheck](https://github.com/lunarmodules/luacheck), shellcheck y zip.
 
 ```powershell
 docker build -t richarsilus-dev tools
@@ -94,7 +99,41 @@ docker run --rm -v "${PWD}:/addon" richarsilus-dev
 
 El segundo comando ejecuta `luacheck .` y `busted`. Las pruebas están en `spec/`: unitarias por módulo y
 `spec/addon_spec.lua`, que carga el addon en el orden del TOC sobre un cliente simulado (`spec/helpers/wow_stub.lua`)
-y recorre el flujo completo de escanear, comprar, craftear y publicar.
+y recorre el flujo completo de escanear, comprar, craftear y publicar. `spec/package_spec.lua` prueba el empaquetado.
+
+Para generar el zip en local (queda en `dist/`):
+
+```powershell
+docker run --rm -v "${PWD}:/addon" richarsilus-dev sh tools/package.sh
+```
+
+El script comprueba que existen todos los ficheros que lista el TOC y que no hay ningún `.lua` fuera del TOC (el juego
+no lo cargaría).
+
+### Integración continua
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) se ejecuta en cada push a `main` y en cada pull request, con la
+misma imagen de Docker:
+
+- **Lint**: `luacheck` (Lua y globales de WoW), `shellcheck` (`tools/package.sh`) y `actionlint` (los workflows).
+- **Tests**: `busted` y empaquetado; el zip queda como artefacto de la ejecución.
+
+### Publicar una release
+
+1. Cambia `## Version:` en `Richarsilus/Richarsilus.toc` (por ejemplo a `1.0.1`) y haz commit en `main`.
+2. Crea y sube la etiqueta con la misma versión:
+
+   ```powershell
+   git tag v1.0.1
+   ```
+
+   ```powershell
+   git push origin v1.0.1
+   ```
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) pasa luacheck y los tests, comprueba que la etiqueta
+coincide con la versión del TOC, empaqueta el addon y publica la release con `Richarsilus-1.0.1.zip` y las notas
+generadas a partir de los commits. Una etiqueta con guion (`v1.1.0-beta1`) se publica como *prerelease*.
 
 | Fichero | Responsabilidad |
 |---|---|
@@ -110,5 +149,7 @@ y recorre el flujo completo de escanear, comprar, craftear y publicar.
 | `Core/Commands.lua` | `/rs` |
 | `Core/Events.lua` | Eventos del juego |
 | `UI/MainFrame.lua` | Ventana |
+| `tools/package.sh` | Zip de la release |
+| `tools/Dockerfile` | Entorno de desarrollo y CI |
 
 Diseño: [docs/superpowers/specs/2026-11-26-richarsilus-design.md](docs/superpowers/specs/2026-11-26-richarsilus-design.md).

@@ -1,0 +1,58 @@
+# Integración continua: análisis estático y tests en cada push a main y en cada pull request.
+# Usa la misma imagen que el desarrollo local (tools/Dockerfile: Lua 5.1, luacheck, busted, shellcheck, zip).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (luacheck, shellcheck, actionlint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the development image
+        run: docker build -t richarsilus-dev tools
+
+      - name: luacheck
+        run: docker run --rm -v "$PWD:/addon" richarsilus-dev luacheck .
+
+      - name: shellcheck
+        run: docker run --rm -v "$PWD:/addon" richarsilus-dev shellcheck tools/package.sh
+
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12 -color
+
+  test:
+    name: Tests (busted) and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the development image
+        run: docker build -t richarsilus-dev tools
+
+      - name: busted
+        run: docker run --rm -v "$PWD:/addon" richarsilus-dev busted
+
+      - name: Package the addon
+        run: docker run --rm -v "$PWD:/addon" richarsilus-dev sh tools/package.sh
+
+      - name: Upload the package
+        uses: actions/upload-artifact@v7
+        with:
+          name: Richarsilus
+          path: dist/*.zip
+          if-no-files-found: error
