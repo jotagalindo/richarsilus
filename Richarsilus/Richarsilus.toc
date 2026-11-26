@@ -1,0 +1,23 @@
+## Interface: 16001
+## Title: Richarsilus
+## Notes: Profitable crafting from the auction house: compares material and product prices, then helps you buy, craft and post (one click per action).
+## Notes-esES: Crafteo rentable desde la casa de subastas: compara precios de materiales y productos y te ayuda a comprar, craftear y publicar (un clic por acción).
+## Notes-esMX: Crafteo rentable desde la casa de subastas: compara precios de materiales y productos y te ayuda a comprar, craftear y publicar (un clic por acción).
+## Author: jotagalindo
+## Version: 1.0.0
+## SavedVariables: RicharsilusDB
+
+Core\Init.lua
+Locales\enUS.lua
+Locales\esES.lua
+Core\Money.lua
+Core\Pricing.lua
+Core\PriceDB.lua
+Core\RecipeDB.lua
+Core\Scanner.lua
+Core\Inventory.lua
+Core\Actions.lua
+Core\Session.lua
+Core\Commands.lua
+UI\MainFrame.lua
+Core\Events.lua
