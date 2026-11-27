@@ -152,6 +152,9 @@ function stub.install(options)
   _G.GetTime = function() return stub.now end
   _G.time = function() return 1700000000 end
   _G.IsShiftKeyDown = function() return false end
+  -- Textos de las duraciones de subasta del juego: solo los hay si la prueba los pide.
+  local durations = options.durations or {}
+  _G.AUCTION_DURATION_ONE, _G.AUCTION_DURATION_TWO, _G.AUCTION_DURATION_THREE = durations[1], durations[2], durations[3]
   -- Hora en UTC para que las pruebas y las capturas no dependan de la zona horaria.
   _G.date = function(format, when) return os.date("!" .. format, when) end
   stub.tooltip = { shown = false, lines = {} }

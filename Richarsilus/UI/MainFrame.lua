@@ -614,7 +614,7 @@ local function createDetail(frame)
   detail.post = W.Button(frame, 140, ACTION_HEIGHT, onPostClick, "secondary")
   detail.post:SetPoint("LEFT", detail.craft, "RIGHT", 5, 0)
   detail.post.tooltip = function()
-    local duration = ns.DURATION_HOURS[ns.db.settings.duration] or "?"
+    local duration = ns.DurationLabel(ns.db.settings.duration)
     return {
       title = L.TOOLTIP_POST_TITLE,
       lines = { L.TOOLTIP_POST, string.format(L.TOOLTIP_POST_DURATION, duration) },
@@ -833,8 +833,9 @@ local function depositTexts(result)
     note = note .. L.DEPOSIT_NOT_COUNTED
     value = muted(ns.Money.Format(result.deposit))
   end
-  local hours = ns.DURATION_HOURS[ns.db.settings.duration] or "?"
-  return string.format(L.RECEIPT_DEPOSIT_HOURS, hours) .. note, value, tooltip
+  local option = ns.DurationOptions()[ns.db.settings.duration]
+  local label = option and option.label and string.format(L.RECEIPT_DEPOSIT_DURATION, option.label) or L.RECEIPT_DEPOSIT
+  return label .. note, value, tooltip
 end
 
 local function refreshReceipt(detail, result)

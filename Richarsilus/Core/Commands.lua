@@ -13,10 +13,6 @@ local ACTION_WORDS = {
 
 local CUT_VALUES = { ["5"] = ns.FACTION_CUT, ["15"] = ns.NEUTRAL_CUT, auto = "auto" }
 local BOOLEAN_VALUES = { on = true, si = true, ["sí"] = true, yes = true, off = false, no = false }
-local DURATION_VALUES = {}
-for index, hours in ipairs(ns.DURATION_HOURS) do
-  DURATION_VALUES[tostring(hours)] = index
-end
 
 function ns.ParseCommand(text)
   local words = {}
@@ -51,12 +47,22 @@ function ns.ParseCommand(text)
       return { action = "deposit", value = value }
     end
   elseif action == "duration" then
-    local value = DURATION_VALUES[argument or ""]
+    -- Las horas válidas las dice el juego: RunCommand las comprueba. Sin número, se listan las opciones.
+    if not argument then
+      return { action = "duration" }
+    end
+    local value = string.match(argument, "^%d+$") and tonumber(argument)
     if value then
       return { action = "duration", value = value }
     end
   end
   return { action = "invalid", command = action }
+end
+
+-- Nombre de una duración: el texto del juego ("8 Horas") o, si el juego no lo da, "opción N".
+function ns.DurationLabel(index)
+  local option = ns.DurationOptions()[index]
+  return option and option.label or string.format(ns.L.DURATION_FALLBACK, index)
 end
 
 -- Aplica un comando ya analizado. `output(text)` escribe en el chat.
@@ -82,8 +88,18 @@ function ns.RunCommand(command, output)
     settings.includeDeposit = command.value
     output(command.value and L.DEPOSIT_ON or L.DEPOSIT_OFF)
   elseif command.action == "duration" then
-    settings.duration = command.value
-    output(string.format(L.DURATION_SET, ns.DURATION_HOURS[command.value]))
+    local options = ns.DurationOptions()
+    local index = command.value and ns.DurationIndex(options, command.value)
+    if index then
+      settings.duration = index
+      output(string.format(L.DURATION_SET, ns.DurationLabel(index)))
+    else
+      local labels = {}
+      for optionIndex in ipairs(options) do
+        labels[optionIndex] = ns.DurationLabel(optionIndex)
+      end
+      output(string.format(L.DURATION_OPTIONS, table.concat(labels, ", "), ns.DurationLabel(settings.duration)))
+    end
   end
   ns.UI.Refresh()
 end
