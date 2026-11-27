@@ -380,6 +380,17 @@ describe("Richarsilus in a simulated client", function()
     UI.durationButton:GetScript("OnEnter")(UI.durationButton)
     assert.are.equal("Duración de las subastas", stub.tooltip.title)
     assert.are.equal("Opciones del juego: 2 Horas, 8 Horas, 24 Horas.", stub.tooltip.lines[3])
+    UI.durationButton:GetScript("OnLeave")(UI.durationButton)
+
+    -- Publicar usa la duración elegida en el addon: 24 Horas es la opción 3 para el juego.
+    UI.durationButton:Click()
+    UI.durationButton:Click()
+    assert.are.equal("Duración: 24 Horas", UI.durationButton:GetText())
+    stub.addToBags(ELIXIR, 1)
+    stub.fire("BAG_UPDATE_DELAYED")
+    stub.update(0.2)
+    UI.detail.post:Click()
+    assert.are.equal(3, stub.lastCall("PostCommodity").args[2])
   end)
 
   it("toggles the window with the slash command", function()
