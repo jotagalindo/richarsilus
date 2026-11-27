@@ -187,22 +187,25 @@ misma imagen de Docker:
 
 ### Publicar una release
 
-1. Cambia `## Version:` en `Richarsilus/Richarsilus.toc` (por ejemplo a `0.0.2`) y haz commit en `main`.
-2. Crea y sube la etiqueta con la misma versión:
+1. Cambia `## Version:` en `Richarsilus/Richarsilus.toc` (por ejemplo a `0.0.4`) en tu rama.
+2. Integra el cambio en `main` (por ejemplo, con un pull request).
 
-   ```powershell
-   git tag v0.0.2
-   ```
+Y ya está: [`.github/workflows/release.yml`](.github/workflows/release.yml) se ejecuta con cada cambio en `main`. Si la
+versión del TOC aún no tiene etiqueta, pasa luacheck y los tests, empaqueta el addon, crea la etiqueta `v0.0.4` sobre
+ese commit y publica la release con `Richarsilus-0.0.4.zip` y las notas generadas a partir de los commits. Si la
+etiqueta ya existe (los cambios no suben la versión), no publica nada. Mientras la versión sea 0.x (fase beta,
+pendiente de probar en el juego) la release se publica como *prerelease*; lo mismo ocurre con cualquier etiqueta con
+guion (`v1.1.0-beta1`). La primera versión estable será la `1.0.0`.
 
-   ```powershell
-   git push origin v0.0.2
-   ```
+También se puede publicar a mano subiendo la etiqueta (debe coincidir con la versión del TOC):
 
-[`.github/workflows/release.yml`](.github/workflows/release.yml) pasa luacheck y los tests, comprueba que la etiqueta
-coincide con la versión del TOC, empaqueta el addon y publica la release con `Richarsilus-0.0.2.zip` y las notas
-generadas a partir de los commits. Mientras la versión sea 0.x (fase beta, pendiente de probar en el juego) la release
-se publica como *prerelease*; lo mismo ocurre con cualquier etiqueta con guion (`v1.1.0-beta1`). La primera versión
-estable será la `1.0.0`.
+```powershell
+git tag v0.0.4
+```
+
+```powershell
+git push origin v0.0.4
+```
 
 | Fichero | Responsabilidad |
 |---|---|

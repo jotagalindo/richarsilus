@@ -1,17 +1,25 @@
-# Release: al subir una etiqueta vX.Y.Z (igual a "## Version:" del TOC) pasa luacheck y los tests,
-# empaqueta el addon y publica una release de GitHub con el zip listo para Interface\AddOns.
+# Release: publica una release de GitHub con el zip listo para Interface\AddOns.
+#
+# - Al llegar un cambio a main (por ejemplo, al integrar un pull request), lee "## Version:" del TOC. Si esa versión
+#   aún no tiene etiqueta vX.Y.Z, pasa luacheck y los tests, empaqueta el addon, crea la etiqueta sobre ese commit y
+#   publica la release. Si la etiqueta ya existe (no se ha subido la versión), no hace nada.
+# - También se puede publicar subiendo a mano una etiqueta vX.Y.Z (igual a "## Version:" del TOC).
+#
 # Se publican como prerelease (beta) las versiones 0.x (v0.0.1) y las etiquetas con guion (v1.1.0-beta1).
+# La etiqueta que crea este workflow con GITHUB_TOKEN no vuelve a lanzar el workflow (GitHub no lo permite), así que
+# cada versión se publica una sola vez.
 name: Release
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
@@ -22,28 +30,64 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Decide the release tag
+        id: tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            tag="$GITHUB_REF_NAME"
+            publish=true
+          else
+            version=$(tr -d '\r' < Richarsilus/Richarsilus.toc | sed -n 's/^## Version:[[:space:]]*\([^[:space:]]*\).*$/\1/p')
+            if [ -z "$version" ]; then
+              echo "::error::No '## Version:' line in Richarsilus/Richarsilus.toc"
+              exit 1
+            fi
+            tag="v$version"
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+              echo "::notice::$tag already exists: change '## Version:' in the TOC to publish a new release."
+              publish=false
+            else
+              publish=true
+            fi
+          fi
+          echo "name=$tag" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
       - name: Build the development image
+        if: steps.tag.outputs.publish == 'true'
         run: docker build -t richarsilus-dev tools
 
       - name: luacheck and busted
+        if: steps.tag.outputs.publish == 'true'
         run: docker run --rm -v "$PWD:/addon" richarsilus-dev
 
       - name: Package the addon (the tag must match the TOC version)
-        run: docker run --rm -v "$PWD:/addon" richarsilus-dev sh tools/package.sh "$GITHUB_REF_NAME"
+        if: steps.tag.outputs.publish == 'true'
+        env:
+          TAG: ${{ steps.tag.outputs.name }}
+        run: docker run --rm -v "$PWD:/addon" richarsilus-dev sh tools/package.sh "$TAG"
 
       - name: Publish the GitHub release
+        if: steps.tag.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.name }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           archive="dist/Richarsilus-${version}.zip"
           prerelease_flag=""
           case "$version" in
             0.* | *-*) prerelease_flag="--prerelease" ;;
           esac
+          # Con una etiqueta subida a mano, la release usa esa etiqueta; desde main, gh crea la etiqueta en este commit.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            tag_flag="--verify-tag"
+          else
+            tag_flag="--target=$GITHUB_SHA"
+          fi
           # shellcheck disable=SC2086 # prerelease_flag is empty or a single flag
-          gh release create "$GITHUB_REF_NAME" "$archive" \
-            --verify-tag \
-            --title "Richarsilus $GITHUB_REF_NAME" \
+          gh release create "$TAG" "$archive" \
+            "$tag_flag" \
+            --title "Richarsilus $TAG" \
             --generate-notes \
             $prerelease_flag
