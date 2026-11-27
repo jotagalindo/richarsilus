@@ -17,16 +17,19 @@ casa de subastas y vendiendo el resultado allí mismo, y te ayuda a hacerlo: un 
 
 > Las imágenes se generan con el código real del addon ejecutado sobre un cliente simulado y datos de ejemplo
 > (`tools/ui-preview`). La disposición, los textos, los colores, los cálculos y los botones activos son los del addon;
-> los precios son inventados, la fuente imita a la del juego y los iconos de los objetos se dibujan como cuadrados de
-> color (en el juego salen los iconos de verdad).
+> los precios y los nombres de las duraciones son de ejemplo, la fuente imita a la del juego y los iconos de los objetos
+> se dibujan como cuadrados de color (en el juego salen los iconos de verdad y las duraciones que da el propio juego).
 
 La ventana tiene un tema oscuro propio (no depende de las texturas de Blizzard) y se lee de arriba abajo, en el orden
 en el que se usa:
 
 **Barra superior:** **Escanear** consulta en la subasta los materiales y productos de tus recetas. A su lado, la
 barra de estado dice qué hacer (abrir la profesión, abrir la subasta, escanear), muestra el progreso del escaneo y,
-al terminar, la hora de los precios. El botón de la derecha muestra la comisión que se aplica (5 % o 15 %, detectada
-por la zona) y al pulsarlo la cambia: auto → 5 % → 15 %. Junto al título, cuántas recetas son rentables.
+al terminar, la hora de los precios. **Duración** es cuánto tiempo quedarán publicadas las subastas que hagas con
+*Publicar*: cada clic pasa a la siguiente opción del juego (con los mismos nombres que la ventana de venta de
+Blizzard), se recuerda entre sesiones y es independiente de lo que tengas elegido en la ventana de Blizzard. El
+depósito se recalcula al momento para la duración elegida. **Comisión** muestra la que se aplica (5 % o 15 %,
+detectada por la zona) y al pulsarlo la cambia: auto → 5 % → 15 %. Junto al título, cuántas recetas son rentables.
 
 **Tabla:** una fila por receta con el icono del producto, ordenada por **beneficio**. Pulsa la cabecera de una columna
 para ordenar por ella (se recuerda entre sesiones); la columna activa queda subrayada. Las recetas sin precio quedan

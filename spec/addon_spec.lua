@@ -273,7 +273,7 @@ describe("Richarsilus in a simulated client", function()
     stub.fire("PLAYER_LOGIN")
     stub.fire("AUCTION_HOUSE_SHOW")
     assert.is_false(UI.scanButton:IsEnabled())
-    assert.are.equal("Abre una vez la ventana de tu profesión para que aprenda tus recetas.", UI.statusText:GetText())
+    assert.are.equal("Abre una vez tu profesión.", UI.statusText:GetText())
     assert.is_truthy(string.find(UI.emptyText:GetText(), "Aún no conozco tus recetas", 1, true))
     assert.is_false(UI.detail.content:IsShown())
     SlashCmdList.RICHARSILUS("escanear")
@@ -286,7 +286,7 @@ describe("Richarsilus in a simulated client", function()
     stub.fire("TRADE_SKILL_SHOW")
     stub.fire("MERCHANT_SHOW")
     stub.fire("AUCTION_HOUSE_SHOW")
-    assert.are.equal("Pulsa Escanear para consultar los precios actuales de la subasta.", UI.statusText:GetText())
+    assert.are.equal("Pulsa Escanear para ver los precios.", UI.statusText:GetText())
     assert.are.equal("primary", UI.scanButton.style)
     UI.scanButton:Click()
     UI.FlushRefresh()
@@ -350,6 +350,36 @@ describe("Richarsilus in a simulated client", function()
 
     SlashCmdList.RICHARSILUS("duracion 48")
     assert.are.equal(3, RicharsilusDB.settings.duration)
+  end)
+
+  it("chooses the duration with its own button and recalculates the deposit for it", function()
+    _G.AUCTION_DURATION_ONE = "2 Horas"
+    _G.AUCTION_DURATION_TWO = "8 Horas"
+    _G.AUCTION_DURATION_THREE = "24 Horas"
+    -- En el cliente simulado, el depósito crece con la duración: 5c por unidad y opción.
+    _G.C_AuctionHouse.CalculateCommodityDeposit = function(_, duration, quantity) return 5 * duration * quantity end
+    stub.fire("PLAYER_LOGIN")
+    stub.fire("TRADE_SKILL_SHOW")
+    stub.fire("MERCHANT_SHOW")
+    stub.fire("AUCTION_HOUSE_SHOW")
+    UI.scanButton:Click()
+    runScan(ns)
+    stub.update(0.2)
+    assert.are.equal("Duración: 8 Horas", UI.durationButton:GetText())
+    assert.are.equal("Depósito 8 Horas = -10c", receiptLine(UI, "deposit"))
+
+    UI.durationButton:Click()
+    assert.are.equal("Duración: 24 Horas", UI.durationButton:GetText())
+    assert.are.equal("Depósito 24 Horas = -15c", receiptLine(UI, "deposit"))
+    assert.are.equal(3, RicharsilusDB.settings.duration)
+
+    UI.durationButton:Click()
+    assert.are.equal("Duración: 2 Horas", UI.durationButton:GetText())
+    assert.are.equal("Depósito 2 Horas = -5c", receiptLine(UI, "deposit"))
+
+    UI.durationButton:GetScript("OnEnter")(UI.durationButton)
+    assert.are.equal("Duración de las subastas", stub.tooltip.title)
+    assert.are.equal("Opciones del juego: 2 Horas, 8 Horas, 24 Horas.", stub.tooltip.lines[3])
   end)
 
   it("toggles the window with the slash command", function()

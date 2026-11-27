@@ -66,6 +66,9 @@ local BAGS = {
   { ITEMS.bloodRoot.id, 3 },
 }
 
+-- Nombres de ejemplo de las duraciones de subasta: en el juego el addon usa los textos del cliente.
+local DURATIONS = { "2 Horas", "8 Horas", "24 Horas" }
+
 local STORMWIND_MAP_ID = 1453
 local SELECTED_CRAFTS = 5
 
@@ -202,6 +205,7 @@ function exporter.BuildScenes()
     itemNames = itemNames(),
     merchant = VENDOR,
     tradeSkill = tradeSkillFor(RECIPES),
+    durations = DURATIONS,
   })
   local ns = stub.loadAddon()
   local UI = ns.UI

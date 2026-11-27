@@ -36,8 +36,9 @@ local MATERIAL_ROW_HEIGHT = 17
 local SUMMARY_LINE_HEIGHT = 15
 local MAX_CRAFTS = 200
 local SCAN_BUTTON_WIDTH = 96
-local CUT_BUTTON_WIDTH = 150
-local STATUS_WIDTH = CONTENT_WIDTH - SCAN_BUTTON_WIDTH - CUT_BUTTON_WIDTH - 16
+local CUT_BUTTON_WIDTH = 136
+local DURATION_BUTTON_WIDTH = 136
+local STATUS_WIDTH = CONTENT_WIDTH - SCAN_BUTTON_WIDTH - DURATION_BUTTON_WIDTH - CUT_BUTTON_WIDTH - 24
 
 -- Columnas de la tabla de recetas. `sort` es la clave de Session.SORT_KEYS.
 local COLUMNS = {
@@ -227,6 +228,30 @@ local function onPostClick()
   UI.Refresh()
 end
 
+-- Duración de las subastas del addon (independiente del desplegable de la ventana de Blizzard):
+-- cada clic pasa a la siguiente opción del juego. Se guarda en los ajustes.
+local function onDurationClick()
+  local settings = ns.db.settings
+  settings.duration = settings.duration % #ns.DURATION_STRINGS + 1
+  UI.Refresh()
+end
+
+local function durationTooltip()
+  local labels = {}
+  for index in ipairs(ns.DURATION_STRINGS) do
+    labels[index] = ns.DurationLabel(index)
+  end
+  return {
+    title = L.TOOLTIP_DURATION_TITLE,
+    lines = {
+      L.TOOLTIP_DURATION,
+      L.TOOLTIP_DURATION_DEPOSIT,
+      string.format(L.TOOLTIP_DURATION_OPTIONS, table.concat(labels, ", ")),
+      L.TOOLTIP_DURATION_CLICK,
+    },
+  }
+end
+
 local function onCutClick()
   local settings = ns.db.settings
   if settings.cut == "auto" then
@@ -317,12 +342,20 @@ local function createToolbar(frame)
   status.label:SetPoint("LEFT", status, "LEFT", 8, 0)
   status.label:SetPoint("RIGHT", status, "RIGHT", -8, 0)
   status.label:SetWordWrap(false)
+  -- El texto completo del estado, por si no cabe en la barra.
+  W.SetTooltip(status, function(self)
+    return { title = L.STATUS_TITLE, lines = { self.fullText } }
+  end)
   UI.status = status
   UI.statusText = status.label
 
   UI.cutButton = W.Button(frame, CUT_BUTTON_WIDTH, TOOLBAR_HEIGHT, onCutClick, "secondary")
   UI.cutButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, TOOLBAR_TOP)
   UI.cutButton.tooltip = tooltipText("TOOLTIP_CUT_TITLE", "TOOLTIP_CUT", "TOOLTIP_CUT_CLICK")
+
+  UI.durationButton = W.Button(frame, DURATION_BUTTON_WIDTH, TOOLBAR_HEIGHT, onDurationClick, "secondary")
+  UI.durationButton:SetPoint("RIGHT", UI.cutButton, "LEFT", -8, 0)
+  UI.durationButton.tooltip = durationTooltip
 end
 
 local function createHeader(frame)
@@ -1014,6 +1047,7 @@ function UI.RefreshStatus()
     text = L.SCAN_HINT
   end
   status.label:SetText(text)
+  status.fullText = text
   if fraction > 0 then
     status.fill:SetWidth(math.max(1, math.floor((STATUS_WIDTH - 2) * math.min(1, fraction))))
     status.fill:Show()
@@ -1023,6 +1057,8 @@ function UI.RefreshStatus()
 
   UI.scanButton:SetEnabled(ns.auctionOpen == true and not scanning and ns.recipeDB:HasRecipes())
   W.SetButtonStyle(UI.scanButton, ns.lastScanAt and "secondary" or "primary")
+
+  UI.durationButton:SetText(string.format(L.DURATION_BUTTON, ns.DurationLabel(ns.db.settings.duration)))
 
   local cut, isAuto = ns.session:CurrentCut()
   UI.cutButton:SetText(string.format(L.CUT_LABEL, math.floor(cut * 100 + 0.5), isAuto and L.CUT_AUTO or L.CUT_MANUAL))
