@@ -4,7 +4,7 @@
 ## Notes-esES: Crafteo rentable desde la casa de subastas: compara precios de materiales y productos y te ayuda a comprar, craftear y publicar (un clic por acción).
 ## Notes-esMX: Crafteo rentable desde la casa de subastas: compara precios de materiales y productos y te ayuda a comprar, craftear y publicar (un clic por acción).
 ## Author: jotagalindo
-## Version: 0.0.2
+## Version: 0.0.3
 ## SavedVariables: RicharsilusDB
 
 Core\Init.lua
@@ -20,5 +20,6 @@ Core\Inventory.lua
 Core\Actions.lua
 Core\Session.lua
 Core\Commands.lua
+UI\Widgets.lua
 UI\MainFrame.lua
 Core\Events.lua

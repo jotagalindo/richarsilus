@@ -6,20 +6,13 @@
 <!--
   Dibuja la ventana del addon a partir del diseño que exporta tools/ui-preview/export.lua
   (el addon real ejecutado sobre el cliente simulado). Escena: preview.html?scene=main | confirm
-  Es una aproximación del aspecto del juego: fuentes y texturas de Blizzard imitadas con CSS.
+  Es una aproximación del aspecto del juego: la fuente de Blizzard se imita con CSS y los iconos de los
+  objetos se dibujan como cuadrados de color (el exportador da un tono por objeto).
 -->
 <style>
-  html, body { margin: 0; background: #101010; }
-  #stage { position: relative; margin: 16px; }
+  html, body { margin: 0; background: #1b1d22; }
+  #stage { position: relative; margin: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65); }
   .region { position: absolute; box-sizing: border-box; }
-  .frame {
-    background:
-      radial-gradient(ellipse at 50% 0%, rgba(60, 60, 70, 0.35), transparent 70%),
-      #07070a;
-    border: 3px solid #7d7d7d;
-    border-radius: 10px;
-    box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000, inset 0 0 0 2px #b8973f, 0 6px 24px rgba(0, 0, 0, 0.8);
-  }
   .text {
     font-family: "Friz Quadrata TT", "Palatino Linotype", "Book Antiqua", Georgia, serif;
     text-shadow: 1px 1px 0 #000;
@@ -27,26 +20,16 @@
     overflow-wrap: anywhere;
   }
   .text.nowrap { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+  .icon { border-radius: 1px; }
+  /* Plantillas de Blizzard que el addon ya no usa, por si vuelven. */
   .button {
     display: flex; align-items: center; justify-content: center;
     background: linear-gradient(#a3120f, #5c0606 55%, #3d0303);
-    border: 1px solid #1a0000;
-    border-radius: 4px;
-    box-shadow: inset 0 1px 0 rgba(255, 190, 120, 0.45), inset 0 0 0 1px rgba(255, 210, 0, 0.18);
+    border: 1px solid #1a0000; border-radius: 4px;
     font-family: "Friz Quadrata TT", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-    font-size: 12px; color: #ffd100; text-shadow: 1px 1px 0 #000;
-    white-space: nowrap; overflow: hidden;
+    font-size: 12px; color: #ffd100; text-shadow: 1px 1px 0 #000; white-space: nowrap; overflow: hidden;
   }
-  .button.disabled {
-    background: linear-gradient(#4a3a3a, #2c2222 55%, #201818);
-    color: #7f7f7f;
-  }
-  .close {
-    background: radial-gradient(circle at 40% 35%, #c8261c, #6a0a05);
-    border: 2px solid #c9a340; border-radius: 5px;
-    color: #f2e6c8; font: bold 13px Arial, sans-serif;
-    display: flex; align-items: center; justify-content: center;
-  }
+  .button.disabled { background: linear-gradient(#4a3a3a, #2c2222 55%, #201818); color: #7f7f7f; }
 </style>
 </head>
 <body>
@@ -66,6 +49,12 @@ const FONTS = {
 };
 const DEFAULT_FONT = { size: 12, color: "#ffffff" };
 const CLOSE_BUTTON_SIZE = 22;
+// Capas de dibujo de WoW dentro de un marco; los marcos hijos se dibujan encima de su padre.
+const LAYERS = { BACKGROUND: 0, BORDER: 1, ARTWORK: 2, OVERLAY: 3 };
+
+function cssColor([red, green, blue, alpha]) {
+  return `rgba(${Math.round(red * 255)}, ${Math.round(green * 255)}, ${Math.round(blue * 255)}, ${alpha})`;
+}
 
 function escapeHtml(text) {
   return text.replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
@@ -121,31 +110,44 @@ function render(layout, stage) {
   }
 
   // 1. Crear los elementos (los textos hay que medirlos antes de anclarlos).
-  const zIndex = { Texture: 1, Frame: 2, Button: 3, FontString: 4 };
+  function depth(region) {
+    let count = 0;
+    for (let current = regions.get(region.parent); current; current = regions.get(current.parent)) count += 1;
+    return count;
+  }
   for (const region of layout.regions) {
     const element = document.createElement("div");
     element.className = "region";
-    element.style.zIndex = region.id === layout.root ? 0 : zIndex[region.kind];
-    if (region.id === layout.root) {
-      element.classList.add("frame");
-    } else if (region.kind === "FontString") {
+    const isFrame = region.kind === "Frame" || region.kind === "Button";
+    const layer = LAYERS[region.layer || (region.kind === "FontString" ? "OVERLAY" : "ARTWORK")];
+    // Una textura o un texto pertenecen a su marco padre: se dibujan al nivel del padre, en su capa.
+    const level = isFrame ? depth(region) : depth(region) - 1;
+    element.style.zIndex = level * 10 + (isFrame ? 0 : layer + 1);
+    if (region.kind === "FontString") {
       const font = FONTS[region.template] || DEFAULT_FONT;
       element.classList.add("text");
+      // Sin ancho ni dos anclajes, un texto de WoW crece hasta caber en una línea (salvo saltos "\n").
+      const free = !region.width && !(region.points && region.points.length > 1) && !region.allPoints;
       if (region.wordWrap === false) element.classList.add("nowrap");
+      else if (free) element.style.whiteSpace = "pre";
       element.style.fontSize = `${font.size}px`;
-      element.style.color = font.color;
+      element.style.color = region.textColor ? cssColor(region.textColor) : font.color;
       element.style.lineHeight = `${font.size + 3 + (region.spacing || 0)}px`;
       element.style.textAlign = (region.justifyH || "CENTER").toLowerCase();
-      element.innerHTML = wowTextToHtml(region.text || "");
+      element.innerHTML = wowTextToHtml(region.text || "").replace(/\n/g, "<br>");
     } else if (region.kind === "Texture" && region.color) {
-      const [red, green, blue, alpha] = region.color;
-      element.style.background = `rgba(${red * 255}, ${green * 255}, ${blue * 255}, ${alpha})`;
+      element.style.background = cssColor(region.color);
+    } else if (region.kind === "Texture" && region.texture !== undefined) {
+      const tone = (layout.iconColors || {})[String(region.texture)] || "#777777";
+      element.classList.add("icon");
+      element.style.background =
+        `radial-gradient(circle at 35% 30%, rgba(255,255,255,0.55), transparent 45%), ` +
+        `linear-gradient(145deg, ${tone}, #101010 120%)`;
     } else if (region.template === "UIPanelButtonTemplate") {
       element.classList.add("button");
       if (!region.enabled) element.classList.add("disabled");
       element.innerHTML = wowTextToHtml(region.text || "");
     } else if (region.template === "UIPanelCloseButton") {
-      element.classList.add("close");
       element.textContent = "✕";
     }
     if (region.width) element.style.width = `${region.width}px`;

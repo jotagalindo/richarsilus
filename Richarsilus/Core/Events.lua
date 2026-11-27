@@ -227,6 +227,10 @@ local function setup()
     ns.UI.RequestRefresh()
   end
   ns.scanner.onFinished = function(done, total, aborted)
+    if total > 1 and not aborted then
+      -- Hora del último escaneo completo, para la barra de estado ("Precios de las 18:42").
+      ns.lastScanAt = time()
+    end
     if total > 1 then
       if aborted then
         ns.Print(L.SCAN_ABORTED)

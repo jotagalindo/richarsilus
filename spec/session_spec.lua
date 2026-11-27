@@ -102,6 +102,61 @@ describe("Session", function()
     end)
   end)
 
+  describe("SortResults", function()
+    local function result(name, status, fields)
+      local entry = { recipe = { name = name }, status = status }
+      for key, value in pairs(fields or {}) do
+        entry[key] = value
+      end
+      return entry
+    end
+
+    local function names(results)
+      local list = {}
+      for index, entry in ipairs(results) do
+        list[index] = entry.recipe.name
+      end
+      return list
+    end
+
+    local function sample()
+      return {
+        result("Cara", "ok", { profit = 50, margin = 0.1, materialCost = 500, salePrice = 600, craftable = 0 }),
+        result("Sin venta", "no_sale_price", { materialCost = 1, craftable = 9 }),
+        result("Barata", "ok", { profit = 20, margin = 2, materialCost = 10, salePrice = 35, craftable = 3 }),
+        result("Sin precio", "missing_materials", { materialCost = 0, craftable = 0 }),
+        result("Abalorio", "ok", { profit = -5, margin = -0.5, materialCost = 10, salePrice = 6, craftable = 1 }),
+      }
+    end
+
+    it("sorts by profit by default, keeping recipes without prices at the end", function()
+      assert.are.same({ "Cara", "Barata", "Abalorio", "Sin venta", "Sin precio" },
+        names(ns.Session.SortResults(sample(), nil)))
+    end)
+
+    it("uses the natural direction of each column", function()
+      assert.are.same({ "Barata", "Cara", "Abalorio", "Sin venta", "Sin precio" },
+        names(ns.Session.SortResults(sample(), "margin")))
+      assert.are.same({ "Abalorio", "Barata", "Cara", "Sin venta", "Sin precio" },
+        names(ns.Session.SortResults(sample(), "cost")))
+      assert.are.same({ "Barata", "Abalorio", "Cara", "Sin venta", "Sin precio" },
+        names(ns.Session.SortResults(sample(), "have")))
+      assert.are.same({ "Abalorio", "Barata", "Cara", "Sin venta", "Sin precio" },
+        names(ns.Session.SortResults(sample(), "product")))
+    end)
+
+    it("is used by EvaluateAll with the column saved in the settings", function()
+      settings.sortKey = "product"
+      recipeDB:SaveProfession("Alquimia", {
+        { recipeID = 1, name = "Zeta", outputItemID = 10, quantityMin = 1, reagents = {} },
+        { recipeID = 2, name = "Alfa", outputItemID = 11, quantityMin = 1, reagents = {} },
+      })
+      priceDB:SetListings(10, { listing(100, 1) }, true)
+      priceDB:SetListings(11, { listing(50, 1) }, true)
+      assert.are.same({ "Alfa", "Zeta" }, names(session:EvaluateAll()))
+    end)
+  end)
+
   describe("NextPurchase", function()
     local recipe
 

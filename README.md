@@ -16,13 +16,24 @@ casa de subastas y vendiendo el resultado allí mismo, y te ayuda a hacerlo: un 
 ![Ventana de Richarsilus con la tabla de recetas y el detalle de Elixir de la mangosta](docs/images/ui-main.png)
 
 > Las imágenes se generan con el código real del addon ejecutado sobre un cliente simulado y datos de ejemplo
-> (`tools/ui-preview`). La disposición, los textos, los cálculos y los botones activos son los del addon; los
-> precios son inventados y el estilo imita al del juego, así que en el juego cambian las fuentes y los bordes.
+> (`tools/ui-preview`). La disposición, los textos, los colores, los cálculos y los botones activos son los del addon;
+> los precios y los nombres de las duraciones son de ejemplo, la fuente imita a la del juego y los iconos de los objetos
+> se dibujan como cuadrados de color (en el juego salen los iconos de verdad y las duraciones que da el propio juego).
 
-**Arriba:** **Escanear** consulta en la subasta los materiales y productos de tus recetas. El botón de la derecha
-muestra la comisión que se aplica (5 % o 15 %, detectada por la zona) y al pulsarlo la cambia: auto → 5 % → 15 %.
+La ventana tiene un tema oscuro propio (no depende de las texturas de Blizzard) y se lee de arriba abajo, en el orden
+en el que se usa:
 
-**Tabla:** una fila por receta, ordenadas de más a menos beneficio:
+**Barra superior:** **Escanear** consulta en la subasta los materiales y productos de tus recetas. A su lado, la
+barra de estado dice qué hacer (abrir la profesión, abrir la subasta, escanear), muestra el progreso del escaneo y,
+al terminar, la hora de los precios. **Duración** es cuánto tiempo quedarán publicadas las subastas que hagas con
+*Publicar*: cada clic pasa a la siguiente opción del juego (con los mismos nombres que la ventana de venta de
+Blizzard), se recuerda entre sesiones y es independiente de lo que tengas elegido en la ventana de Blizzard. El
+depósito se recalcula al momento para la duración elegida. **Comisión** muestra la que se aplica (5 % o 15 %,
+detectada por la zona) y al pulsarlo la cambia: auto → 5 % → 15 %. Junto al título, cuántas recetas son rentables.
+
+**Tabla:** una fila por receta con el icono del producto, ordenada por **beneficio**. Pulsa la cabecera de una columna
+para ordenar por ella (se recuerda entre sesiones); la columna activa queda subrayada. Las recetas sin precio quedan
+siempre al final. Al pasar el ratón por una fila sale el tooltip del objeto.
 
 | Columna | Qué indica |
 |---|---|
@@ -33,19 +44,21 @@ muestra la comisión que se aplica (5 % o 15 %, detectada por la zona) y al puls
 
 Si no hay nadie vendiendo el producto aparece *sin venta*; si falta el precio de algún material, *sin precio*.
 
-**Detalle de la receta elegida** (clic en una fila):
+**Detalle de la receta elegida** (la más rentable al abrir; clic en otra fila para cambiarla):
 
-- **− x5 +**: aquí eliges **cuántos crafteos** quieres hacer (Mayús + clic = de 10 en 10, hasta 200). Todo lo
+- **Crafteos − 5 +**: aquí eliges **cuántos crafteos** quieres hacer (Mayús + clic = de 10 en 10, hasta 200). Todo lo
   demás se recalcula para esa cantidad.
-- **Materiales**: para cada uno, cuánto necesitas, cuánto tienes, cuánto **te falta comprar**, dónde conviene
-  comprarlo (subasta o vendedor) y lo que vas a **pagar** por eso.
-- **Lista de la compra**: todo lo que hay que comprar de una vez: en la subasta (lo va comprando el botón
-  **Comprar**, un material por clic), al vendedor (lo compras tú al hablar con él), lo que no se puede comprar porque
-  no hay suficientes subastas, y el total a gastar.
-- **Resumen**: venta total, comisión, depósito, materiales y el **beneficio** final de todos los crafteos. En
-  *materiales* cuenta también lo que ya tienes, valorado a precio de mercado.
+- **Materiales**: una tabla con lo que necesitas, lo que tienes (en verde si te basta), lo que **te falta comprar**,
+  dónde conviene comprarlo (subasta o vendedor) y lo que vas a **pagar**.
+- **Lista de la compra**: lo que hay que comprar en la subasta (lo va comprando el botón **Comprar**, un material por
+  clic), al vendedor (lo compras tú al hablar con él), lo que no se puede comprar porque no hay suficientes subastas,
+  y el total a gastar.
+- **Resultado**: venta, comisión, depósito, materiales y el **beneficio** final de todos los crafteos, como una
+  factura. En *materiales* cuenta también lo que ya tienes, valorado a precio de mercado. El tooltip del depósito
+  explica si es el del juego, uno estimado o uno aún desconocido.
 
-**Botones de abajo** (cada clic hace una sola cosa):
+**Botones de abajo** (cada clic hace una sola cosa). El botón del **siguiente paso** que te conviene se pinta en dorado
+y la línea de encima te lo explica (o muestra el error si algo ha fallado). Todos los botones tienen tooltip.
 
 | Botón | Qué hace |
 |---|---|
@@ -94,8 +107,8 @@ volver a escanear.
 | Materiales que compras | Se recorren las subastas de más barata a más cara para la cantidad exacta (comprar 20 hierbas cuesta lo que cuestan esas 20, no 20 × la más barata). Tus propias subastas no cuentan. Si el vendedor es más barato, se usa el vendedor. |
 | Materiales que ya tienes | Valen su precio de mercado (lo que ganarías vendiéndolos). Así, si la hierba vale más que la poción, lo verás. |
 | Precio de venta | Subasta ajena más barata − rebaja (1 cobre por defecto). |
-| Comisión | 5 % en casas de subastas de facción, 15 % en las neutrales (Gadgetzan, Bahía del Botín, Vista Eterna). Se detecta por zona; el botón de la comisión la cambia a mano (auto → 5 % → 15 %). |
-| Depósito | El que calcula el propio juego para cada objeto, duración elegida y cantidad. Se te devuelve si vendes, pero por defecto cuenta como coste (opción conservadora). Para lo que se apila (pociones, elixires...) el juego lo da siempre. Para lo que no se apila (armas, armaduras...) solo lo da si tienes uno en las bolsas: el addon guarda cada depósito que le da el juego y lo reutiliza; si nunca lo ha visto, lo estima a partir del precio de venta al vendedor del objeto (en Forever el depósito es un porcentaje de ese precio) y lo marca como *estimado*, o como *desconocido* si aún no puede estimarlo. |
+| Comisión | Lo que se queda la casa de subastas cuando **vendes** (si no se vende, no se cobra; no depende de la duración). 5 % en casas de subastas de facción, 15 % en las neutrales (Gadgetzan, Bahía del Botín, Vista Eterna). Se detecta por zona; el botón de la comisión la cambia a mano (auto → 5 % → 15 %). |
+| Depósito | Lo que pagas **al publicar**: se te devuelve si vendes y lo pierdes si la subasta caduca o la cancelas. Lo calcula el propio juego para cada objeto, cantidad y duración (cuanto más larga, más depósito; la ventana muestra la que se usa con el nombre que le da el juego, p. ej. *Depósito 8 Horas*). Por defecto cuenta como coste (opción conservadora; `/rs deposito off` para no contarlo). Para lo que se apila (pociones, elixires...) el juego lo da siempre. Para lo que no se apila (armas, armaduras...) solo lo da si tienes uno en las bolsas: el addon guarda cada depósito que le da el juego y lo reutiliza; si nunca lo ha visto, lo estima a partir del precio de venta al vendedor del objeto (en Forever el depósito es un porcentaje de ese precio) y lo marca como *estimado*, o como *desconocido* si aún no puede estimarlo. |
 | Producción | Se usa la cantidad mínima que da la receta. |
 
 ## Comandos
@@ -107,7 +120,7 @@ volver a escanear.
 | `/rs comision 5\|15\|auto` | Fija la comisión |
 | `/rs rebaja <cobre>` | Cuánto rebajar al publicar (por defecto 1) |
 | `/rs deposito on\|off` | Contar o no el depósito como coste |
-| `/rs duracion 12\|24\|48` | Duración de las subastas (por defecto 24 h) |
+| `/rs duracion [horas]` | Sin número, muestra las duraciones que ofrece la casa de subastas (con los mismos textos que la ventana de venta de Blizzard) y la que se usa. Con número, la cambia (por ejemplo `/rs duracion 24`). Por defecto, la del medio de las tres. Cuanto más larga, más depósito |
 | `/rs olvidar` | Borra las recetas guardadas de este personaje |
 
 También funcionan en inglés (`scan`, `cut`, `undercut`, `deposit`, `duration`, `forget`) y con `/richarsilus`.
@@ -132,6 +145,9 @@ cliente simulado, pero no en el cliente real. La primera vez que lo uses, fíjat
 - Que tras abrir la profesión aparezca el mensaje de recetas guardadas.
 - Que la comisión mostrada coincida con la casa de subastas en la que estás (si no, cámbiala con el botón).
 - Que el depósito mostrado coincida con el que enseña la ventana de venta de Blizzard.
+- Que `/rs duracion` liste las mismas duraciones que el desplegable de la ventana de venta de Blizzard.
+- Que la ventana se vea como en las imágenes: iconos de los objetos, colores de las monedas, tooltips al pasar el
+  ratón (también sobre botones desactivados) y el botón del siguiente paso en dorado.
 
 Si algo falla, `/console scriptErrors 1` muestra los errores de Lua en pantalla.
 
@@ -202,9 +218,11 @@ estable será la `1.0.0`.
 | `Core/Session.lua` | Une todo lo anterior para la interfaz |
 | `Core/Commands.lua` | `/rs` |
 | `Core/Events.lua` | Eventos del juego |
+| `UI/Widgets.lua` | Tema de colores y piezas de la ventana (paneles, botones, iconos, tooltips) |
 | `UI/MainFrame.lua` | Ventana |
 | `tools/package.sh` | Zip de la release |
 | `tools/ui-preview/` | Imágenes de la interfaz del README (`render.ps1` las regenera en `docs/images/`) |
 | `tools/Dockerfile` | Entorno de desarrollo y CI |
 
 Diseño: [docs/superpowers/specs/2026-11-26-richarsilus-design.md](docs/superpowers/specs/2026-11-26-richarsilus-design.md).
+Próximas mejoras propuestas: [docs/propuesta-mejoras.md](docs/propuesta-mejoras.md).

@@ -15,7 +15,6 @@ globals = {
 -- API y constantes de WoW: Forever 1.60.1 (verificadas en Blizzard_APIDocumentationGenerated).
 read_globals = {
   "AuctionHouseFrame",
-  "BACKDROP_DIALOG_32_32",
   "C_AuctionHouse",
   "C_Container",
   "C_Item",
@@ -23,8 +22,10 @@ read_globals = {
   "C_MerchantFrame",
   "C_TradeSkillUI",
   "CreateFrame",
+  "date",
   "DEFAULT_CHAT_FRAME",
   "Enum",
+  "GameTooltip",
   "GetLocale",
   "GetMerchantItemID",
   "GetMerchantNumItems",

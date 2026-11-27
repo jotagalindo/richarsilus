@@ -5,22 +5,26 @@ local stub = require("wow_stub")
 
 local exporter = {}
 
--- Datos de ejemplo (precios en cobre). Los IDs son ficticios.
+-- Datos de ejemplo (precios en cobre). Los IDs son ficticios. `color` es el tono con el que la vista
+-- previa dibuja el icono (no tiene los iconos del juego).
 local ITEMS = {
-  dreamfoil = { id = 8001, name = "Flor de sueño" },
-  bloodRoot = { id = 8002, name = "Raíz de sangre" },
-  graveMoss = { id = 8003, name = "Musgo de tumba" },
-  crystalVial = { id = 8004, name = "Vial de cristal" },
-  lotusPetal = { id = 8005, name = "Pétalo de loto" },
-  blackLily = { id = 8006, name = "Lirio negro" },
-  imbuedVial = { id = 8007, name = "Vial imbuido" },
-  mongoose = { id = 7001, name = "Elixir de la mangosta" },
-  manaPotion = { id = 7002, name = "Poción de maná superior" },
-  healingPotion = { id = 7003, name = "Poción de sanación superior" },
-  agility = { id = 7004, name = "Elixir de agilidad mayor" },
-  titans = { id = 7005, name = "Frasco de titanes" },
-  wisdom = { id = 7006, name = "Elixir de sabiduría" },
+  dreamfoil = { id = 8001, name = "Flor de sueño", color = "#7fb24a" },
+  bloodRoot = { id = 8002, name = "Raíz de sangre", color = "#b2453a" },
+  graveMoss = { id = 8003, name = "Musgo de tumba", color = "#5f8a5a" },
+  crystalVial = { id = 8004, name = "Vial de cristal", color = "#8fb6c9" },
+  lotusPetal = { id = 8005, name = "Pétalo de loto", color = "#c98fc4" },
+  blackLily = { id = 8006, name = "Lirio negro", color = "#5b4a7a" },
+  imbuedVial = { id = 8007, name = "Vial imbuido", color = "#5aa0d6" },
+  mongoose = { id = 7001, name = "Elixir de la mangosta", color = "#d2a13c" },
+  manaPotion = { id = 7002, name = "Poción de maná superior", color = "#3f6fd8" },
+  healingPotion = { id = 7003, name = "Poción de sanación superior", color = "#d84a4a" },
+  agility = { id = 7004, name = "Elixir de agilidad mayor", color = "#4fb07a" },
+  titans = { id = 7005, name = "Frasco de titanes", color = "#9a7bd0" },
+  wisdom = { id = 7006, name = "Elixir de sabiduría", color = "#4fb6c4" },
 }
+
+-- El cliente simulado devuelve como icono 100000 + ID del objeto.
+local ICON_BASE = 100000
 
 local RECIPES = {
   { id = 2001, output = ITEMS.mongoose, reagents = { { ITEMS.dreamfoil, 2 }, { ITEMS.imbuedVial, 1 } } },
@@ -61,6 +65,9 @@ local BAGS = {
   { ITEMS.imbuedVial.id, 2 },
   { ITEMS.bloodRoot.id, 3 },
 }
+
+-- Nombres de ejemplo de las duraciones de subasta: en el juego el addon usa los textos del cliente.
+local DURATIONS = { "2 Horas", "8 Horas", "24 Horas" }
 
 local STORMWIND_MAP_ID = 1453
 local SELECTED_CRAFTS = 5
@@ -120,6 +127,14 @@ local function runScan(ns)
 end
 
 -- Copia el árbol de regiones en tablas planas con un id por región y anclajes por id.
+local function iconColors()
+  local colors = {}
+  for _, item in pairs(ITEMS) do
+    colors[tostring(ICON_BASE + item.id)] = item.color
+  end
+  return colors
+end
+
 local function snapshot(root)
   local ids = {}
   local ordered = {}
@@ -150,6 +165,9 @@ local function snapshot(root)
       spacing = region.spacing,
       wordWrap = region.wordWrap,
       color = region.color,
+      textColor = region.textColor,
+      texture = region.texture,
+      layer = region.layer,
       allPoints = region.allPoints,
     }
     if region.points and region ~= root then
@@ -176,7 +194,7 @@ local function snapshot(root)
     end
     regions[index] = exported
   end
-  return { root = 1, regions = regions }
+  return { root = 1, regions = regions, iconColors = iconColors() }
 end
 
 -- Devuelve { { name = "main", layout = ... }, { name = "confirm", layout = ... } }.
@@ -187,6 +205,7 @@ function exporter.BuildScenes()
     itemNames = itemNames(),
     merchant = VENDOR,
     tradeSkill = tradeSkillFor(RECIPES),
+    durations = DURATIONS,
   })
   local ns = stub.loadAddon()
   local UI = ns.UI

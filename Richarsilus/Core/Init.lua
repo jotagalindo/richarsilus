@@ -9,13 +9,53 @@ ns.defaults = {
   cut = "auto",
   -- Cobre que se rebaja respecto a la subasta ajena más barata al publicar.
   undercut = 1,
-  -- Índice de duración de la API: 1 = 12 h, 2 = 24 h, 3 = 48 h.
+  -- Índice de duración de la API: 1 = la más corta, 2 = la del medio, 3 = la más larga.
+  -- Las horas de cada una las dice el propio juego (ver ns.DurationOptions).
   duration = 2,
   -- El depósito se devuelve al vender; contarlo como coste es la opción conservadora.
   includeDeposit = true,
   -- Igual que la interfaz de Blizzard: si el precio confirmado sube más de un 5 %, no se compra.
   maxPriceIncrease = 1.05,
+  -- Columna por la que se ordena la tabla de recetas (ver Session.SORT_KEYS).
+  sortKey = "profit",
 }
+
+-- Textos del juego con las duraciones de subasta (los mismos que muestra el desplegable de la ventana de
+-- venta de Blizzard), por índice de la API. Más duración = más depósito.
+ns.DURATION_STRINGS = { "AUCTION_DURATION_ONE", "AUCTION_DURATION_TWO", "AUCTION_DURATION_THREE" }
+
+-- Opciones de duración tal y como las nombra el juego: { { label = "8 Horas", hours = 8 }, ... }.
+-- `strings` es la tabla de textos globales (_G en el juego). Si falta un texto, label y hours son nil.
+function ns.DurationOptions(strings)
+  local source = strings or _G
+  local options = {}
+  for index, name in ipairs(ns.DURATION_STRINGS) do
+    local label = source[name]
+    if type(label) ~= "string" or label == "" then
+      label = nil
+    end
+    options[index] = { label = label, hours = label and tonumber(string.match(label, "%d+")) or nil }
+  end
+  return options
+end
+
+-- Índice de la duración que corresponde a `number`: primero se busca por horas ("/rs duracion 24");
+-- si el juego no da horas en ninguno de sus textos, se acepta el número de opción (1, 2 o 3).
+function ns.DurationIndex(options, number)
+  local anyHours = false
+  for index, option in ipairs(options) do
+    if option.hours then
+      anyHours = true
+      if option.hours == number then
+        return index
+      end
+    end
+  end
+  if not anyHours and options[number] then
+    return number
+  end
+  return nil
+end
 
 ns.FACTION_CUT = 0.05
 ns.NEUTRAL_CUT = 0.15

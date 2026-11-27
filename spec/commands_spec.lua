@@ -41,10 +41,11 @@ describe("ParseCommand", function()
   end)
 
   it("parses the posting duration in hours", function()
-    assert.are.same({ action = "duration", value = 1 }, ParseCommand("duracion 12"))
-    assert.are.same({ action = "duration", value = 2 }, ParseCommand("duration 24"))
-    assert.are.same({ action = "duration", value = 3 }, ParseCommand("duración 48"))
-    assert.are.same({ action = "invalid", command = "duration" }, ParseCommand("duracion 6"))
+    -- Las horas válidas las da el juego al ejecutar el comando; aquí solo se lee el número.
+    assert.are.same({ action = "duration", value = 24 }, ParseCommand("duracion 24"))
+    assert.are.same({ action = "duration", value = 8 }, ParseCommand("duración 8"))
+    assert.are.same({ action = "duration" }, ParseCommand("duration"))
+    assert.are.same({ action = "invalid", command = "duration" }, ParseCommand("duracion larga"))
   end)
 
   it("parses the command that forgets saved recipes", function()
