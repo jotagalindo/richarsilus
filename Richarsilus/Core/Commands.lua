@@ -13,7 +13,10 @@ local ACTION_WORDS = {
 
 local CUT_VALUES = { ["5"] = ns.FACTION_CUT, ["15"] = ns.NEUTRAL_CUT, auto = "auto" }
 local BOOLEAN_VALUES = { on = true, si = true, ["sí"] = true, yes = true, off = false, no = false }
-local DURATION_VALUES = { ["12"] = 1, ["24"] = 2, ["48"] = 3 }
+local DURATION_VALUES = {}
+for index, hours in ipairs(ns.DURATION_HOURS) do
+  DURATION_VALUES[tostring(hours)] = index
+end
 
 function ns.ParseCommand(text)
   local words = {}
@@ -80,7 +83,7 @@ function ns.RunCommand(command, output)
     output(command.value and L.DEPOSIT_ON or L.DEPOSIT_OFF)
   elseif command.action == "duration" then
     settings.duration = command.value
-    output(L.DURATION_SET)
+    output(string.format(L.DURATION_SET, ns.DURATION_HOURS[command.value]))
   end
   ns.UI.Refresh()
 end

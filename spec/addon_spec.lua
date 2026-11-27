@@ -253,19 +253,19 @@ describe("Richarsilus in a simulated client", function()
     ns.priceDB:SetListings(ELIXIR, { { unitPrice = 500, quantity = 1, own = false, auctionID = 7, buyout = 500 } }, false)
     stub.update(0.2)
     UI.rows[1]:Click()
-    assert.are.equal("Depósito (desconocido) = ?", receiptLine(UI, "deposit"))
+    assert.are.equal("Depósito 8 h (desconocido) = ?", receiptLine(UI, "deposit"))
     assert.are.equal("Desconocido hasta que tengas uno en las bolsas: el juego solo lo da para lo que llevas.",
-      UI.detail.depositRow.tooltip.lines[1])
+      UI.detail.depositRow.tooltip.lines[2])
 
     stub.addToBags(ELIXIR, 1)
     stub.fire("BAG_UPDATE_DELAYED")
     stub.update(0.2)
-    assert.are.equal("Depósito = -5c", receiptLine(UI, "deposit"))
+    assert.are.equal("Depósito 8 h = -5c", receiptLine(UI, "deposit"))
 
     stub.bags = { [0] = {}, [1] = {}, [2] = {}, [3] = {}, [4] = {} }
     stub.fire("BAG_UPDATE_DELAYED")
     stub.update(0.2)
-    assert.are.equal("Depósito = -5c", receiptLine(UI, "deposit"))
+    assert.are.equal("Depósito 8 h = -5c", receiptLine(UI, "deposit"))
     assert.are.equal(5, RicharsilusDB.deposits.items[ELIXIR]["2:faction"])
   end)
 
@@ -323,6 +323,19 @@ describe("Richarsilus in a simulated client", function()
     UI.rows[1]:GetScript("OnEnter")(UI.rows[1])
     assert.are.equal(ELIXIR, stub.tooltip.itemID)
     assert.is_true(UI.rows[1].hover:IsShown())
+  end)
+
+  it("uses the Forever auction durations (2, 8 and 24 hours)", function()
+    stub.fire("PLAYER_LOGIN")
+    stub.fire("TRADE_SKILL_SHOW")
+    stub.fire("AUCTION_HOUSE_SHOW")
+    assert.are.equal("Duración: 8 h (cámbiala con /rs duracion 2, 8 o 24; más horas = más depósito).",
+      UI.detail.post.tooltip().lines[2])
+    SlashCmdList.RICHARSILUS("duracion 24")
+    assert.are.equal(3, RicharsilusDB.settings.duration)
+    assert.is_true(containsText(stub.chat, "Duración de las subastas: 24 h."))
+    assert.are.equal("Duración: 24 h (cámbiala con /rs duracion 2, 8 o 24; más horas = más depósito).",
+      UI.detail.post.tooltip().lines[2])
   end)
 
   it("toggles the window with the slash command", function()

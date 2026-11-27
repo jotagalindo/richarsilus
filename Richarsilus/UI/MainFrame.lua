@@ -614,7 +614,7 @@ local function createDetail(frame)
   detail.post = W.Button(frame, 140, ACTION_HEIGHT, onPostClick, "secondary")
   detail.post:SetPoint("LEFT", detail.craft, "RIGHT", 5, 0)
   detail.post.tooltip = function()
-    local duration = ({ "12", "24", "48" })[ns.db.settings.duration] or "?"
+    local duration = ns.DURATION_HOURS[ns.db.settings.duration] or "?"
     return {
       title = L.TOOLTIP_POST_TITLE,
       lines = { L.TOOLTIP_POST, string.format(L.TOOLTIP_POST_DURATION, duration) },
@@ -833,7 +833,8 @@ local function depositTexts(result)
     note = note .. L.DEPOSIT_NOT_COUNTED
     value = muted(ns.Money.Format(result.deposit))
   end
-  return L.RECEIPT_DEPOSIT .. note, value, tooltip
+  local hours = ns.DURATION_HOURS[ns.db.settings.duration] or "?"
+  return string.format(L.RECEIPT_DEPOSIT_HOURS, hours) .. note, value, tooltip
 end
 
 local function refreshReceipt(detail, result)
@@ -846,7 +847,10 @@ local function refreshReceipt(detail, result)
     setLine(receipt.cut, string.format(L.RECEIPT_CUT, math.floor(cut * 100 + 0.5)), "-" .. money(result.cutAmount))
     local depositLabel, depositValue, depositTooltip = depositTexts(result)
     setLine(receipt.deposit, depositLabel, depositValue)
-    detail.depositRow.tooltip = { title = L.RECEIPT_DEPOSIT, lines = { depositTooltip } }
+    detail.depositRow.tooltip = {
+      title = L.RECEIPT_DEPOSIT,
+      lines = { L.TOOLTIP_DEPOSIT_WHAT, depositTooltip, L.TOOLTIP_DEPOSIT_DURATION },
+    }
   else
     setLine(receipt.sale, L.RECEIPT_SALE_NONE, muted("-"))
     setLine(receipt.cut, string.format(L.RECEIPT_CUT, math.floor(cut * 100 + 0.5)), muted("-"))

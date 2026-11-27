@@ -9,7 +9,7 @@ ns.defaults = {
   cut = "auto",
   -- Cobre que se rebaja respecto a la subasta ajena más barata al publicar.
   undercut = 1,
-  -- Índice de duración de la API: 1 = 12 h, 2 = 24 h, 3 = 48 h.
+  -- Índice de duración de la API (ver ns.DURATION_HOURS): 1 = 2 h, 2 = 8 h, 3 = 24 h.
   duration = 2,
   -- El depósito se devuelve al vender; contarlo como coste es la opción conservadora.
   includeDeposit = true,
@@ -18,6 +18,9 @@ ns.defaults = {
   -- Columna por la que se ordena la tabla de recetas (ver Session.SORT_KEYS).
   sortKey = "profit",
 }
+
+-- Horas de cada duración de subasta en Forever, por índice de la API. Más horas = más depósito.
+ns.DURATION_HOURS = { 2, 8, 24 }
 
 ns.FACTION_CUT = 0.05
 ns.NEUTRAL_CUT = 0.15

@@ -104,8 +104,8 @@ volver a escanear.
 | Materiales que compras | Se recorren las subastas de más barata a más cara para la cantidad exacta (comprar 20 hierbas cuesta lo que cuestan esas 20, no 20 × la más barata). Tus propias subastas no cuentan. Si el vendedor es más barato, se usa el vendedor. |
 | Materiales que ya tienes | Valen su precio de mercado (lo que ganarías vendiéndolos). Así, si la hierba vale más que la poción, lo verás. |
 | Precio de venta | Subasta ajena más barata − rebaja (1 cobre por defecto). |
-| Comisión | 5 % en casas de subastas de facción, 15 % en las neutrales (Gadgetzan, Bahía del Botín, Vista Eterna). Se detecta por zona; el botón de la comisión la cambia a mano (auto → 5 % → 15 %). |
-| Depósito | El que calcula el propio juego para cada objeto, duración elegida y cantidad. Se te devuelve si vendes, pero por defecto cuenta como coste (opción conservadora). Para lo que se apila (pociones, elixires...) el juego lo da siempre. Para lo que no se apila (armas, armaduras...) solo lo da si tienes uno en las bolsas: el addon guarda cada depósito que le da el juego y lo reutiliza; si nunca lo ha visto, lo estima a partir del precio de venta al vendedor del objeto (en Forever el depósito es un porcentaje de ese precio) y lo marca como *estimado*, o como *desconocido* si aún no puede estimarlo. |
+| Comisión | Lo que se queda la casa de subastas cuando **vendes** (si no se vende, no se cobra; no depende de la duración). 5 % en casas de subastas de facción, 15 % en las neutrales (Gadgetzan, Bahía del Botín, Vista Eterna). Se detecta por zona; el botón de la comisión la cambia a mano (auto → 5 % → 15 %). |
+| Depósito | Lo que pagas **al publicar**: se te devuelve si vendes y lo pierdes si la subasta caduca o la cancelas. Lo calcula el propio juego para cada objeto, cantidad y duración (2, 8 o 24 h: cuanto más larga, más depósito; la ventana muestra la que se usa, p. ej. *Depósito 8 h*). Por defecto cuenta como coste (opción conservadora; `/rs deposito off` para no contarlo). Para lo que se apila (pociones, elixires...) el juego lo da siempre. Para lo que no se apila (armas, armaduras...) solo lo da si tienes uno en las bolsas: el addon guarda cada depósito que le da el juego y lo reutiliza; si nunca lo ha visto, lo estima a partir del precio de venta al vendedor del objeto (en Forever el depósito es un porcentaje de ese precio) y lo marca como *estimado*, o como *desconocido* si aún no puede estimarlo. |
 | Producción | Se usa la cantidad mínima que da la receta. |
 
 ## Comandos
@@ -117,7 +117,7 @@ volver a escanear.
 | `/rs comision 5\|15\|auto` | Fija la comisión |
 | `/rs rebaja <cobre>` | Cuánto rebajar al publicar (por defecto 1) |
 | `/rs deposito on\|off` | Contar o no el depósito como coste |
-| `/rs duracion 12\|24\|48` | Duración de las subastas (por defecto 24 h) |
+| `/rs duracion 2\|8\|24` | Duración de las subastas en horas (por defecto 8 h). Cuanto más larga, más depósito |
 | `/rs olvidar` | Borra las recetas guardadas de este personaje |
 
 También funcionan en inglés (`scan`, `cut`, `undercut`, `deposit`, `duration`, `forget`) y con `/richarsilus`.
