@@ -112,7 +112,7 @@ end
 
 -- Evalúa `crafts` crafteos de una receta con los precios del contexto.
 -- ctx = { listings(itemID), vendorPrice(itemID), owned(itemID), cut, undercut,
---         deposit(itemID, units), includeDeposit }
+--         deposit(itemID, units) -> cantidad, origen, includeDeposit }
 function Pricing.Evaluate(recipe, crafts, ctx)
   local craftCount = math.max(1, math.floor(crafts or 1))
   local units = craftCount * (recipe.quantityMin or 1)
@@ -149,7 +149,10 @@ function Pricing.Evaluate(recipe, crafts, ctx)
   if salePrice then
     result.gross = salePrice * units
     result.cutAmount = math.floor(result.gross * ctx.cut + 0.5)
-    result.deposit = ctx.deposit(recipe.outputItemID, units) or 0
+    -- ctx.deposit devuelve cantidad y origen ("game", "remembered", "estimated"); nil = desconocido.
+    local deposit, depositSource = ctx.deposit(recipe.outputItemID, units)
+    result.deposit = deposit or 0
+    result.depositSource = deposit and (depositSource or "game") or "unknown"
     local depositCost = ctx.includeDeposit and result.deposit or 0
     result.profit = result.gross - result.cutAmount - materialCost - depositCost
     if materialCost > 0 then

@@ -10,8 +10,8 @@ $previewDirectory = Join-Path $repositoryRoot 'tools\ui-preview'
 $imagesDirectory = Join-Path $repositoryRoot 'docs\images'
 $scenes = @('main', 'confirm')
 
-# Ventana de 640x560 más 16 px de margen por lado; escala 2 para que el texto se lea bien en GitHub.
-$windowSize = '672,592'
+# Ventana de 640x640 más 16 px de margen por lado; escala 2 para que el texto se lea bien en GitHub.
+$windowSize = '672,672'
 $deviceScaleFactor = '2'
 
 docker run --rm -v "${repositoryRoot}:/addon" richarsilus-dev lua5.1 tools/ui-preview/export.lua

@@ -45,9 +45,15 @@ function Region:Enable() self.enabled = true end
 function Region:Disable() self.enabled = false end
 function Region:SetEnabled(enabled) self.enabled = enabled and true or false end
 function Region:IsEnabled() return self.enabled end
-function Region:SetPoint(...) self.point = { ... } end
+-- `point` es el último anclaje y `points` todos (una región puede anclarse por dos esquinas).
+function Region:SetPoint(...)
+  self.point = { ... }
+  self.points = self.points or {}
+  self.points[#self.points + 1] = self.point
+end
 function Region:ClearAllPoints()
   self.point = nil
+  self.points = nil
   self.allPoints = nil
 end
 function Region:SetAllPoints() self.allPoints = true end
@@ -139,6 +145,14 @@ function stub.install(options)
 
   _G.C_Item = {
     GetItemNameByID = function(itemID) return options.itemNames[itemID] end,
+    -- Solo interesa el precio de venta al vendedor (11.º valor); sin él, el objeto "no está cargado".
+    GetItemInfo = function(itemID)
+      local sellPrice = options.sellPrices and options.sellPrices[itemID]
+      if sellPrice == nil then
+        return nil
+      end
+      return options.itemNames[itemID], nil, nil, nil, nil, nil, nil, nil, nil, nil, sellPrice
+    end,
     RequestLoadItemDataByID = record("RequestLoadItemDataByID"),
     GetItemCount = count,
   }

@@ -96,6 +96,26 @@ local function byRecipeID(first, second)
   return first.recipeID < second.recipeID
 end
 
+-- Quita de las demás profesiones guardadas las recetas indicadas. Si el juego da el nombre de la
+-- profesión de otra forma (por ejemplo tras cambiar de idioma), las recetas no quedan guardadas dos veces.
+function RecipeDB:RemoveFromOtherProfessions(professionName, recipeIDs)
+  for otherName, entry in pairs(self.store) do
+    if otherName ~= professionName then
+      local kept = {}
+      for _, recipe in ipairs(entry.recipes or {}) do
+        if not recipeIDs[recipe.recipeID] then
+          kept[#kept + 1] = recipe
+        end
+      end
+      if #kept == 0 then
+        self.store[otherName] = nil
+      else
+        entry.recipes = kept
+      end
+    end
+  end
+end
+
 -- Fusiona por recipeID: las recetas leídas sustituyen a las guardadas y las que no aparecen
 -- se conservan (la lista de Blizzard puede venir filtrada por el buscador de la ventana).
 function RecipeDB:SaveProfession(professionName, recipes)
@@ -104,9 +124,11 @@ function RecipeDB:SaveProfession(professionName, recipes)
   for _, recipe in ipairs(previous and previous.recipes or {}) do
     byID[recipe.recipeID] = recipe
   end
+  local readIDs = {}
   for _, recipe in ipairs(recipes) do
     recipe.profession = professionName
     byID[recipe.recipeID] = recipe
+    readIDs[recipe.recipeID] = true
   end
 
   local merged = {}
@@ -114,6 +136,7 @@ function RecipeDB:SaveProfession(professionName, recipes)
     merged[#merged + 1] = recipe
   end
   table.sort(merged, byRecipeID)
+  self:RemoveFromOtherProfessions(professionName, readIDs)
   self.store[professionName] = { recipes = merged, t = self.clock() }
 end
 
@@ -123,28 +146,68 @@ function RecipeDB:Clear()
   end
 end
 
-function RecipeDB:AllRecipes()
+-- Todas las recetas guardadas de todas las profesiones (las más recientes primero si se repiten).
+local function storedRecipes(store)
   local professionNames = {}
-  for professionName in pairs(self.store) do
+  for professionName in pairs(store) do
     professionNames[#professionNames + 1] = professionName
   end
-  table.sort(professionNames)
+  table.sort(professionNames, function(first, second)
+    local firstTime, secondTime = store[first].t or 0, store[second].t or 0
+    if firstTime ~= secondTime then
+      return firstTime > secondTime
+    end
+    return first < second
+  end)
 
   local all = {}
   for _, professionName in ipairs(professionNames) do
-    for _, recipe in ipairs(self.store[professionName].recipes) do
+    for _, recipe in ipairs(store[professionName].recipes or {}) do
       all[#all + 1] = recipe
     end
   end
   return all
 end
 
+-- Misma salida, misma cantidad producida y mismos materiales: para el cálculo son la misma receta.
+local function craftSignature(recipe)
+  local reagents = {}
+  for index, reagent in ipairs(recipe.reagents) do
+    reagents[index] = reagent.itemID .. "x" .. reagent.quantity
+  end
+  table.sort(reagents)
+  return table.concat({
+    recipe.outputItemID,
+    recipe.quantityMin or 1,
+    recipe.quantityMax or 1,
+    table.concat(reagents, ","),
+  }, ";")
+end
+
+-- Recetas para la tabla: cada recipeID una vez, y una sola entre las que craftean lo mismo con lo mismo.
+function RecipeDB:AllRecipes()
+  local seenIDs = {}
+  local seenSignatures = {}
+  local unique = {}
+  for _, recipe in ipairs(storedRecipes(self.store)) do
+    local signature = craftSignature(recipe)
+    if not seenIDs[recipe.recipeID] and not seenSignatures[signature] then
+      unique[#unique + 1] = recipe
+    end
+    seenIDs[recipe.recipeID] = true
+    seenSignatures[signature] = true
+  end
+  table.sort(unique, byRecipeID)
+  return unique
+end
+
 function RecipeDB:HasRecipes()
   return #self:AllRecipes() > 0
 end
 
+-- Busca en todo lo guardado, también en recetas que la tabla no muestra por estar repetidas.
 function RecipeDB:GetRecipe(recipeID)
-  for _, recipe in ipairs(self:AllRecipes()) do
+  for _, recipe in ipairs(storedRecipes(self.store)) do
     if recipe.recipeID == recipeID then
       return recipe
     end

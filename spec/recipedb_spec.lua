@@ -210,6 +210,40 @@ describe("RecipeDB", function()
       assert.are.equal("Alchemy", database:GetRecipe(1).profession)
     end)
 
+    it("keeps one copy of a recipe when the game reports the profession under another name", function()
+      database:SaveProfession("Alchemy", {
+        { recipeID = 1, outputItemID = 10, reagents = { { itemID = 20, quantity = 1 } } },
+        { recipeID = 2, outputItemID = 11, reagents = { { itemID = 21, quantity = 1 } } },
+      })
+      database:SaveProfession("Alquimia", { { recipeID = 1, outputItemID = 10, reagents = { { itemID = 20, quantity = 1 } } } })
+      local recipes = database:AllRecipes()
+      assert.are.same({ 1, 2 }, { recipes[1].recipeID, recipes[2].recipeID })
+      assert.are.equal("Alquimia", database:GetRecipe(1).profession)
+      assert.are.same({ 2 }, { store.Alchemy.recipes[1].recipeID, store.Alchemy.recipes[2] })
+
+      database:SaveProfession("Alquimia", { { recipeID = 2, outputItemID = 11, reagents = { { itemID = 21, quantity = 1 } } } })
+      assert.is_nil(store.Alchemy)
+      assert.are.equal(2, #database:AllRecipes())
+    end)
+
+    it("shows each recipe once even if older saved data repeats it", function()
+      local recipe = { recipeID = 1, outputItemID = 10, reagents = { { itemID = 20, quantity = 1 } } }
+      store.Alchemy = { recipes = { recipe }, t = 1 }
+      store.Alquimia = { recipes = { recipe }, t = 2 }
+      assert.are.equal(1, #database:AllRecipes())
+    end)
+
+    it("shows once two recipe ids that craft the same item from the same reagents", function()
+      database:SaveProfession("Alchemy", {
+        { recipeID = 1, outputItemID = 10, quantityMin = 1, reagents = { { itemID = 20, quantity = 2 }, { itemID = 21, quantity = 1 } } },
+        { recipeID = 2, outputItemID = 10, quantityMin = 1, reagents = { { itemID = 21, quantity = 1 }, { itemID = 20, quantity = 2 } } },
+        { recipeID = 3, outputItemID = 10, quantityMin = 1, reagents = { { itemID = 20, quantity = 3 }, { itemID = 21, quantity = 1 } } },
+      })
+      local recipes = database:AllRecipes()
+      assert.are.same({ 1, 3 }, { recipes[1].recipeID, recipes[2].recipeID })
+      assert.are.equal(2, database:GetRecipe(2).recipeID)
+    end)
+
     it("lists every output and reagent once, sorted", function()
       database:SaveProfession("Alchemy", {
         { recipeID = 1, outputItemID = 30, reagents = { { itemID = 20, quantity = 1 }, { itemID = 5, quantity = 1 } } },

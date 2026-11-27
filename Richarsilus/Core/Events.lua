@@ -76,18 +76,48 @@ local function priceSorts()
   return { { sortOrder = priceOrder, reverseSort = false } }
 end
 
--- Depósito real según el juego (solo disponible con la subasta abierta).
-local function depositFor(itemID, units)
-  if not ns.auctionOpen then
+-- Precio de venta al vendedor (base del depósito en Forever); nil si el juego aún no tiene el objeto cargado.
+local function sellPriceOf(itemID)
+  if not (C_Item and C_Item.GetItemInfo) then
     return nil
   end
+  local sellPrice = select(11, C_Item.GetItemInfo(itemID))
+  if sellPrice == nil and C_Item.RequestLoadItemDataByID then
+    C_Item.RequestLoadItemDataByID(itemID)
+  end
+  return sellPrice
+end
+
+-- El depósito depende de la duración y de si la casa de subastas es neutral.
+local function depositKey()
+  local cut = ns.session:CurrentCut()
+  return ns.db.settings.duration .. ":" .. (cut >= ns.NEUTRAL_CUT and "neutral" or "faction")
+end
+
+-- Depósito para publicar `units` del objeto (solo con la subasta abierta). Devuelve cantidad y origen:
+-- "game" si lo calcula el juego, "remembered"/"estimated" si sale de lo aprendido, nil y "unknown" si no.
+local function depositFor(itemID, units)
+  if not ns.auctionOpen then
+    return nil, "unknown"
+  end
   local duration = ns.db.settings.duration
+  local key = depositKey()
+  local sellPrice = sellPriceOf(itemID)
   if ns.priceDB:IsCommodity(itemID) == false then
     local location = ns.inventory:FindItemLocation(itemID)
     local perItem = location and C_AuctionHouse.CalculateItemDeposit(location, duration, 1)
-    return perItem and perItem * units or nil
+    if perItem then
+      ns.depositBook:Observe(itemID, key, perItem, sellPrice)
+      return perItem * units, "game"
+    end
+  else
+    local total = C_AuctionHouse.CalculateCommodityDeposit(itemID, duration, units)
+    if total then
+      ns.depositBook:Observe(itemID, key, total / units, sellPrice)
+      return total, "game"
+    end
   end
-  return C_AuctionHouse.CalculateCommodityDeposit(itemID, duration, units)
+  return ns.depositBook:Estimate(itemID, key, units, sellPrice)
 end
 
 local function rescanItem(itemID)
@@ -166,6 +196,7 @@ local function setup()
   ns.db = RicharsilusDB
 
   ns.priceDB = ns.PriceDB.New(ns.db, time)
+  ns.depositBook = ns.DepositBook.New(ns.db.deposits)
   ns.recipeDB = ns.RecipeDB.New(ns.db.characters[key].professions, time)
   ns.inventory = ns.Inventory.New({
     bagIDs = bagIDs(),

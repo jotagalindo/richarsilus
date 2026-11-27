@@ -51,8 +51,15 @@ Para una receta y un número de crafteos `n`:
   barata es tuya, se iguala a ella. Sin subastas del producto → "sin precio de venta".
 - **Comisión** = 5 % (casa de subastas de facción) o 15 % (neutral). Detección automática por mapa
   (Tanaris, Cuna del Invierno, Cabo de Tuercespina / Tuercespina) con selector manual en la UI y `/rs comision`.
-- **Depósito** = `CalculateCommodityDeposit(outputItemID, duración, unidades)` dado por el juego. Se devuelve
-  si se vende; por defecto cuenta como coste (opción `/rs deposito on|off`).
+- **Depósito** = `CalculateCommodityDeposit(outputItemID, duración, unidades)` dado por el juego para lo que se
+  apila. Para lo que no se apila, `CalculateItemDeposit` solo funciona con el objeto en las bolsas: cada valor del
+  juego se guarda (`Core/Deposit.lua`, por duración y tipo de casa de subastas) y, para objetos nunca vistos, se
+  estima con el precio de venta al vendedor × la proporción aprendida (con el depósito más bajo visto como mínimo).
+  La interfaz marca el depósito como estimado o desconocido. Se devuelve si se vende; por defecto cuenta como coste
+  (opción `/rs deposito on|off`).
+- **Recetas repetidas**: el juego puede dar dos recetas distintas para el mismo producto con los mismos materiales,
+  o el nombre de la profesión de dos formas. La tabla muestra una sola entrada por recipeID y por
+  producto + materiales.
 - **Beneficio** = `venta × unidades × (1 − comisión) − coste materiales − depósito`.
   **Margen** = beneficio / coste materiales.
 
@@ -69,6 +76,7 @@ Todos comparten la tabla del addon (`local _, ns = ...`). La lógica pura no toc
 | `Core/Money.lua` | Formato de dinero (oro/plata/cobre) — puro |
 | `Core/Pricing.lua` | Recorrer subastas, coste de materiales, venta, comisión, depósito, beneficio — puro |
 | `Core/PriceDB.lua` | Precios escaneados (en memoria: listados; guardado: mínimo y fecha) y precios de vendedor |
+| `Core/Deposit.lua` | Depósitos aprendidos del juego y estimados para objetos no apilables — puro |
 | `Core/RecipeDB.lua` | Lee recetas aprendidas con producto desde `C_TradeSkillUI` y las guarda por personaje |
 | `Core/Scanner.lua` | Cola de búsquedas con límite de ritmo y lectura de resultados commodity/objeto |
 | `Core/Inventory.lua` | Contar ítems en bolsas y localizar un `ItemLocation` para publicar |

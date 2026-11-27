@@ -153,6 +153,57 @@ describe("Session", function()
     end)
   end)
 
+  describe("ShoppingList", function()
+    local recipe
+
+    before_each(function()
+      recipe = {
+        recipeID = 6,
+        name = "Elixir",
+        outputItemID = 300,
+        quantityMin = 1,
+        reagents = {
+          { itemID = 1, quantity = 2 },
+          { itemID = 2, quantity = 2 },
+          { itemID = 3, quantity = 1 },
+          { itemID = 4, quantity = 1 },
+          { itemID = 5, quantity = 1 },
+        },
+      }
+      priceDB:SetListings(1, { listing(10, 2), listing(12, 10) }, true)
+      priceDB:SetListings(2, { listing(20, 10) }, true)
+      priceDB:SetVendorPrice(3, 5)
+      priceDB:SetListings(4, { listing(30, 1) }, true)
+      priceDB:SetListings(5, { listing(7, 10) }, true)
+      owned[3] = 1
+      owned[5] = 3
+    end)
+
+    it("lists every material to buy at the auction house and at vendors, with totals", function()
+      local shopping = session:ShoppingList(session:Evaluate(recipe, 3))
+      assert.are.same({
+        { itemID = 1, quantity = 6, cost = 68 },
+        { itemID = 2, quantity = 6, cost = 120 },
+      }, shopping.auction)
+      assert.are.equal(188, shopping.auctionTotal)
+      assert.are.same({ { itemID = 3, quantity = 2, cost = 10 } }, shopping.vendor)
+      assert.are.equal(10, shopping.vendorTotal)
+      assert.are.same({ { itemID = 4, quantity = 3 } }, shopping.missing)
+      assert.are.equal(198, shopping.total)
+    end)
+
+    it("is empty when the bags already hold everything", function()
+      for itemID = 1, 5 do
+        owned[itemID] = 10
+      end
+      local shopping = session:ShoppingList(session:Evaluate(recipe, 1))
+      assert.are.same({}, shopping.auction)
+      assert.are.same({}, shopping.vendor)
+      assert.are.same({}, shopping.missing)
+      assert.are.equal(0, shopping.total)
+    end)
+  end)
+
   it("computes the price to post at", function()
     priceDB:SetListings(200, { listing(1000, 1) }, true)
     assert.are.equal(999, session:SaleUnitPrice(200))

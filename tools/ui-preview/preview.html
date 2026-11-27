@@ -176,18 +176,24 @@ function render(layout, stage) {
       result = { left: 0, top: 0, width: region.width, height: region.height };
     } else if (region.allPoints) {
       result = { ...rectangle(region.parent) };
-    } else if (region.point) {
-      const anchor = region.point;
-      const relative = rectangle(anchor.relativeTo);
+    } else if (region.points && region.points.length > 0) {
+      // Cada anclaje fija un borde (o el centro). Con dos esquinas opuestas el tamaño sale de ellas.
+      const edges = {};
+      for (const anchor of region.points) {
+        const relative = rectangle(anchor.relativeTo);
+        const anchorX = relative.left + horizontalOffset(anchor.relativePoint, relative.width) + anchor.x;
+        const anchorY = relative.top + verticalOffset(anchor.relativePoint, relative.height) - anchor.y;
+        edges[anchor.point.endsWith("LEFT") ? "left" : anchor.point.endsWith("RIGHT") ? "right" : "centerX"] = anchorX;
+        edges[anchor.point.startsWith("TOP") ? "top" : anchor.point.startsWith("BOTTOM") ? "bottom" : "centerY"] = anchorY;
+      }
       const own = size(region);
-      const anchorX = relative.left + horizontalOffset(anchor.relativePoint, relative.width) + anchor.x;
-      const anchorY = relative.top + verticalOffset(anchor.relativePoint, relative.height) - anchor.y;
-      result = {
-        left: anchorX - horizontalOffset(anchor.point, own.width),
-        top: anchorY - verticalOffset(anchor.point, own.height),
-        width: own.width,
-        height: own.height,
-      };
+      const width = edges.left !== undefined && edges.right !== undefined ? edges.right - edges.left : own.width;
+      const height = edges.top !== undefined && edges.bottom !== undefined ? edges.bottom - edges.top : own.height;
+      const left = edges.left !== undefined ? edges.left
+        : edges.right !== undefined ? edges.right - width : edges.centerX - width / 2;
+      const top = edges.top !== undefined ? edges.top
+        : edges.bottom !== undefined ? edges.bottom - height : edges.centerY - height / 2;
+      result = { left, top, width, height };
     } else {
       throw new Error(`region ${id} (${region.kind}) has no anchor`);
     }

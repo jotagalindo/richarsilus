@@ -152,24 +152,26 @@ local function snapshot(root)
       color = region.color,
       allPoints = region.allPoints,
     }
-    if region.point and region ~= root then
-      local point = region.point
-      if type(point[2]) == "table" then
-        exported.point = {
-          point = point[1],
-          relativeTo = assert(ids[point[2]], "anchored to a region outside the window"),
-          relativePoint = point[3] or point[1],
-          x = point[4] or 0,
-          y = point[5] or 0,
-        }
-      else
-        exported.point = {
-          point = point[1],
-          relativeTo = exported.parent,
-          relativePoint = point[1],
-          x = point[2] or 0,
-          y = point[3] or 0,
-        }
+    if region.points and region ~= root then
+      exported.points = {}
+      for pointIndex, point in ipairs(region.points) do
+        if type(point[2]) == "table" then
+          exported.points[pointIndex] = {
+            point = point[1],
+            relativeTo = assert(ids[point[2]], "anchored to a region outside the window"),
+            relativePoint = point[3] or point[1],
+            x = point[4] or 0,
+            y = point[5] or 0,
+          }
+        else
+          exported.points[pointIndex] = {
+            point = point[1],
+            relativeTo = exported.parent,
+            relativePoint = point[1],
+            x = point[2] or 0,
+            y = point[3] or 0,
+          }
+        end
       end
     end
     regions[index] = exported

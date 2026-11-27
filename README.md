@@ -37,16 +37,19 @@ Si no hay nadie vendiendo el producto aparece *sin venta*; si falta el precio de
 
 - **− x5 +**: aquí eliges **cuántos crafteos** quieres hacer (Mayús + clic = de 10 en 10, hasta 200). Todo lo
   demás se recalcula para esa cantidad.
-- **Materiales**: para cada uno, cuánto necesitas, cuánto tienes, cuánto **te falta comprar** y dónde conviene
-  comprarlo (subasta o vendedor). El importe entre paréntesis es el valor de todo el material de esa línea, también
-  lo que ya tienes, valorado a precio de mercado.
-- **Resumen**: venta total, comisión, depósito, materiales y el **beneficio** final de todos los crafteos.
+- **Materiales**: para cada uno, cuánto necesitas, cuánto tienes, cuánto **te falta comprar**, dónde conviene
+  comprarlo (subasta o vendedor) y lo que vas a **pagar** por eso.
+- **Lista de la compra**: todo lo que hay que comprar de una vez: en la subasta (lo va comprando el botón
+  **Comprar**, un material por clic), al vendedor (lo compras tú al hablar con él), lo que no se puede comprar porque
+  no hay suficientes subastas, y el total a gastar.
+- **Resumen**: venta total, comisión, depósito, materiales y el **beneficio** final de todos los crafteos. En
+  *materiales* cuenta también lo que ya tienes, valorado a precio de mercado.
 
 **Botones de abajo** (cada clic hace una sola cosa):
 
 | Botón | Qué hace |
 |---|---|
-| **Comprar 4 Flor de sueño (48s)** | Compra en la subasta lo que falta del siguiente material, solo la cantidad necesaria para los crafteos elegidos y empezando por las subastas más baratas. Si falta más de un material, después de cada compra el botón pasa al siguiente. Lo que conviene comprar al vendedor no aparece aquí: se lo compras tú al vendedor. |
+| **Comprar 4 Flor de sueño (48s)** | Compra en la subasta el siguiente material de la lista de la compra, solo la cantidad necesaria para los crafteos elegidos y empezando por las subastas más baratas. Después de cada compra el botón pasa al siguiente material de la lista. Es un material por clic porque Blizzard solo permite una compra por clic, y cada una se confirma aparte. |
 | **Cancelar** | Cancela una compra o publicación a medio confirmar |
 | **Craftear 2** | Craftea lo que te permiten los materiales que llevas, hasta el número elegido (necesita la ventana de la profesión abierta) |
 | **Publicar N** | Publica todas las unidades del producto que tengas en las bolsas al precio de la columna *Venta* |
@@ -70,8 +73,10 @@ volver a escanear.
 
 1. **Abre la ventana de tu profesión** una vez. El addon guarda tus recetas (verás
    `Alquimia: N recetas guardadas` en el chat). Repítelo cuando aprendas recetas nuevas.
-2. *(Opcional)* **Habla con un vendedor de suministros** (frascos, hilos...). El addon apunta sus precios y, si son
-   más baratos que la subasta, te dirá "comprar al vendedor".
+2. **Habla con un vendedor de suministros** de tu profesión (viales, hilos...). El addon apunta sus precios para toda
+   la cuenta y, si son más baratos que la subasta, te dirá "comprar al vendedor". Hazlo antes de comprar: mientras el
+   addon no conozca a ese vendedor, no sabe que el vial se vende ahí y podría proponerte comprarlo más caro en la
+   subasta.
 3. **Ve a la casa de subastas.** La ventana de Richarsilus se abre a su lado. Pulsa **Escanear** (tarda ~1 s por objeto).
 4. La tabla queda ordenada por **beneficio**. *Puedes* = cuántos crafteos puedes hacer con lo que ya llevas.
 5. Elige una receta y la cantidad de crafteos con **− / +** (Mayús = de 10 en 10). Verás cada material: cuánto
@@ -90,7 +95,7 @@ volver a escanear.
 | Materiales que ya tienes | Valen su precio de mercado (lo que ganarías vendiéndolos). Así, si la hierba vale más que la poción, lo verás. |
 | Precio de venta | Subasta ajena más barata − rebaja (1 cobre por defecto). |
 | Comisión | 5 % en casas de subastas de facción, 15 % en las neutrales (Gadgetzan, Bahía del Botín, Vista Eterna). Se detecta por zona; el botón de la comisión la cambia a mano (auto → 5 % → 15 %). |
-| Depósito | El que calcula el propio juego para la duración elegida. Se te devuelve si vendes, pero por defecto cuenta como coste (opción conservadora). |
+| Depósito | El que calcula el propio juego para cada objeto, duración elegida y cantidad. Se te devuelve si vendes, pero por defecto cuenta como coste (opción conservadora). Para lo que se apila (pociones, elixires...) el juego lo da siempre. Para lo que no se apila (armas, armaduras...) solo lo da si tienes uno en las bolsas: el addon guarda cada depósito que le da el juego y lo reutiliza; si nunca lo ha visto, lo estima a partir del precio de venta al vendedor del objeto (en Forever el depósito es un porcentaje de ese precio) y lo marca como *estimado*, o como *desconocido* si aún no puede estimarlo. |
 | Producción | Se usa la cantidad mínima que da la receta. |
 
 ## Comandos
@@ -189,6 +194,7 @@ estable será la `1.0.0`.
 | `Core/Money.lua` | Formato `1g 2s 3c` |
 | `Core/Pricing.lua` | Cálculo de costes, venta, comisión, depósito y beneficio |
 | `Core/PriceDB.lua` | Precios escaneados y de vendedor |
+| `Core/Deposit.lua` | Depósitos aprendidos y estimados de objetos no apilables |
 | `Core/RecipeDB.lua` | Recetas leídas de `C_TradeSkillUI` |
 | `Core/Scanner.lua` | Escaneo con límite de ritmo |
 | `Core/Inventory.lua` | Bolsas |

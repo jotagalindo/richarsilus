@@ -106,6 +106,9 @@ describe("Richarsilus in a simulated client", function()
 
     row:Click()
     assert.are.equal("Comprar 2 Hierba (60c)", UI.detail.buy:GetText())
+    local shoppingText = UI.detail.materials:GetText()
+    assert.is_truthy(string.find(shoppingText, "Subasta (botón Comprar, uno por clic): 2 Hierba = 60c", 1, true))
+    assert.is_truthy(string.find(shoppingText, "Total a gastar: 80c", 1, true))
 
     -- Compra en dos clics, como la interfaz de Blizzard.
     UI.detail.buy:Click()
@@ -124,7 +127,10 @@ describe("Richarsilus in a simulated client", function()
 
     -- El vial se compra al vendedor: no hay nada más que comprar en la subasta.
     assert.are.equal("Nada que comprar", UI.detail.buy:GetText())
-    assert.is_truthy(string.find(UI.detail.materials:GetText(), "comprar al vendedor", 1, true))
+    local materialsText = UI.detail.materials:GetText()
+    assert.is_truthy(string.find(materialsText, "Hierba: necesitas 2, tienes 2 - ya tienes suficiente", 1, true))
+    assert.is_truthy(string.find(materialsText, "Vial: necesitas 1, tienes 0 - comprar 1 |cffffd200al vendedor|r (20c)", 1, true))
+    assert.is_truthy(string.find(materialsText, "Vendedor|r: 1 Vial = 20c", 1, true))
 
     stub.addToBags(VIAL, 1)
     stub.fire("BAG_UPDATE_DELAYED")
@@ -178,6 +184,32 @@ describe("Richarsilus in a simulated client", function()
     assert.is_not_nil(stub.lastCall("CancelCommoditiesPurchase"))
     assert.is_nil(stub.lastCall("ConfirmCommoditiesPurchase"))
     assert.are.equal("El precio ha subido más de un 5%. Vuelve a escanear.", UI.message)
+  end)
+
+  it("learns the deposit of an item that does not stack and remembers it after selling it", function()
+    -- Para un objeto no apilable el juego no calcula el depósito por su ID.
+    _G.C_AuctionHouse.CalculateCommodityDeposit = function() return nil end
+    stub.fire("PLAYER_LOGIN")
+    stub.fire("TRADE_SKILL_SHOW")
+    stub.fire("AUCTION_HOUSE_SHOW")
+    UI.scanButton:Click()
+    runScan(ns)
+    -- El elixir resulta no apilable: el juego solo da su depósito si hay uno en las bolsas.
+    ns.priceDB:SetListings(ELIXIR, { { unitPrice = 500, quantity = 1, own = false, auctionID = 7, buyout = 500 } }, false)
+    stub.update(0.2)
+    UI.rows[1]:Click()
+    assert.is_truthy(string.find(UI.detail.summary:GetText(), "depósito -? (desconocido hasta que tengas uno en las bolsas)", 1, true))
+
+    stub.addToBags(ELIXIR, 1)
+    stub.fire("BAG_UPDATE_DELAYED")
+    stub.update(0.2)
+    assert.is_truthy(string.find(UI.detail.summary:GetText(), "depósito -5c |", 1, true))
+
+    stub.bags = { [0] = {}, [1] = {}, [2] = {}, [3] = {}, [4] = {} }
+    stub.fire("BAG_UPDATE_DELAYED")
+    stub.update(0.2)
+    assert.is_truthy(string.find(UI.detail.summary:GetText(), "depósito -5c |", 1, true))
+    assert.are.equal(5, RicharsilusDB.deposits.items[ELIXIR]["2:faction"])
   end)
 
   it("asks to learn recipes before scanning", function()

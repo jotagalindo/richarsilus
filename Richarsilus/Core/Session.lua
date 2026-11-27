@@ -115,6 +115,35 @@ function Session:NextPurchase(result)
   return nil
 end
 
+-- Lista de la compra de `result`: qué falta comprar en la subasta y al vendedor (con su coste)
+-- y qué no se puede comprar porque no hay suficientes subastas ni vendedor conocido.
+function Session.ShoppingList(_, result)
+  local shopping = { auction = {}, vendor = {}, missing = {}, auctionTotal = 0, vendorTotal = 0 }
+  for _, material in ipairs(result.materials) do
+    if material.toBuy > 0 then
+      if material.source == "auction" then
+        shopping.auction[#shopping.auction + 1] = {
+          itemID = material.itemID,
+          quantity = material.toBuy,
+          cost = material.buyCost,
+        }
+        shopping.auctionTotal = shopping.auctionTotal + material.buyCost
+      elseif material.source == "vendor" then
+        shopping.vendor[#shopping.vendor + 1] = {
+          itemID = material.itemID,
+          quantity = material.toBuy,
+          cost = material.buyCost,
+        }
+        shopping.vendorTotal = shopping.vendorTotal + material.buyCost
+      else
+        shopping.missing[#shopping.missing + 1] = { itemID = material.itemID, quantity = material.toBuy }
+      end
+    end
+  end
+  shopping.total = shopping.auctionTotal + shopping.vendorTotal
+  return shopping
+end
+
 function Session:SaleUnitPrice(itemID)
   return ns.Pricing.SalePrice(self.priceDB:GetListings(itemID), self.settings.undercut)
 end

@@ -45,6 +45,7 @@ function ns.InitDB(saved, characterKey)
   end
   ensureTable(database, "prices")
   ensureTable(database, "vendor")
+  ensureTable(database, "deposits")
   local characters = ensureTable(database, "characters")
   local character = ensureTable(characters, characterKey)
   ensureTable(character, "professions")

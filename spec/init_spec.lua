@@ -20,6 +20,7 @@ describe("Init", function()
     assert.are.equal("auto", database.settings.cut)
     assert.are.same({}, database.prices)
     assert.are.same({}, database.vendor)
+    assert.are.same({}, database.deposits)
     assert.are.same({}, database.characters["Tester-Realm"].professions)
   end)
 

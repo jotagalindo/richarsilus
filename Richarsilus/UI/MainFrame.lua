@@ -8,7 +8,7 @@ local UI = {}
 ns.UI = UI
 
 local FRAME_WIDTH = 640
-local FRAME_HEIGHT = 560
+local FRAME_HEIGHT = 640
 local ROW_COUNT = 12
 local ROW_HEIGHT = 18
 local LIST_TOP = -88
@@ -271,6 +271,11 @@ function UI.Create()
   frame:SetPoint("CENTER")
   frame:SetFrameStrata("HIGH")
   frame:SetBackdrop(BACKDROP_DIALOG_32_32)
+  -- El fondo del diálogo de Blizzard es semitransparente: sin esto se leen los nombres de detrás.
+  local background = frame:CreateTexture(nil, "BACKGROUND")
+  background:SetPoint("TOPLEFT", frame, "TOPLEFT", 11, -12)
+  background:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, 11)
+  background:SetColorTexture(0.04, 0.04, 0.05, 0.95)
   frame:SetClampedToScreen(true)
   frame:SetMovable(true)
   frame:EnableMouse(true)
@@ -357,19 +362,54 @@ function UI.RefreshRows()
   end
 end
 
+-- Una línea por material: cuánto necesitas, cuánto tienes y, si falta, dónde comprarlo y lo que pagas.
 local function materialLine(material)
-  local source = L["SOURCE_" .. material.source]
-  if material.cost > 0 then
-    source = source .. " (" .. money(material.cost) .. ")"
+  local action
+  if material.toBuy == 0 then
+    action = L.MATERIAL_HAVE_ALL
+  elseif material.source == "auction" then
+    action = string.format(L.MATERIAL_BUY_AUCTION, material.toBuy, money(material.buyCost))
+  elseif material.source == "vendor" then
+    action = string.format(L.MATERIAL_BUY_VENDOR, material.toBuy, money(material.buyCost))
+  else
+    action = string.format(L.MATERIAL_MISSING, material.toBuy)
   end
   return string.format(
     L.MATERIAL_LINE,
     ns.ItemName(material.itemID),
     material.needed,
     ns.inventory:Count(material.itemID),
-    material.toBuy,
-    source
+    action
   )
+end
+
+local function itemList(entries)
+  local parts = {}
+  for index, entry in ipairs(entries) do
+    parts[index] = string.format(L.SHOPPING_ITEM, entry.quantity, ns.ItemName(entry.itemID))
+  end
+  return table.concat(parts, ", ")
+end
+
+-- Lista de la compra completa: todo lo que hay que comprar en la subasta y al vendedor, con totales.
+local function shoppingLines(shopping)
+  local lines = { L.SHOPPING_TITLE }
+  if #shopping.auction > 0 then
+    lines[#lines + 1] = string.format(L.SHOPPING_AUCTION, itemList(shopping.auction), money(shopping.auctionTotal))
+  end
+  if #shopping.vendor > 0 then
+    lines[#lines + 1] = string.format(L.SHOPPING_VENDOR, itemList(shopping.vendor), money(shopping.vendorTotal))
+  end
+  if #shopping.missing > 0 then
+    lines[#lines + 1] = string.format(L.SHOPPING_MISSING, itemList(shopping.missing))
+  end
+  if #shopping.auction > 0 and #shopping.vendor > 0 then
+    lines[#lines + 1] = string.format(L.SHOPPING_TOTAL, money(shopping.total))
+  end
+  if #shopping.auction == 0 and #shopping.vendor == 0 and #shopping.missing == 0 then
+    lines[#lines + 1] = L.SHOPPING_NOTHING
+  end
+  return lines
 end
 
 local function refreshBuyButton(detail, result)
@@ -446,17 +486,32 @@ function UI.RefreshDetail()
   for _, material in ipairs(result.materials) do
     lines[#lines + 1] = materialLine(material)
   end
+  lines[#lines + 1] = " "
+  for _, line in ipairs(shoppingLines(ns.session:ShoppingList(result))) do
+    lines[#lines + 1] = line
+  end
   detail.materials:SetText(table.concat(lines, "\n"))
 
   if result.salePrice then
-    local depositNote = ns.db.settings.includeDeposit and "" or L.DEPOSIT_NOT_COUNTED
+    local depositText = money(result.deposit)
+    local depositNote = ""
+    if result.depositSource == "estimated" then
+      depositText = "~" .. depositText
+      depositNote = L.DEPOSIT_ESTIMATED
+    elseif result.depositSource == "unknown" then
+      depositText = "?"
+      depositNote = L.DEPOSIT_UNKNOWN
+    end
+    if not ns.db.settings.includeDeposit then
+      depositNote = depositNote .. L.DEPOSIT_NOT_COUNTED
+    end
     detail.summary:SetText(string.format(
       L.SUMMARY,
       result.units,
       money(result.salePrice),
       money(result.gross),
       money(result.cutAmount),
-      money(result.deposit),
+      depositText,
       depositNote,
       money(result.materialCost)
     ))
