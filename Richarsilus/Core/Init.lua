@@ -15,6 +15,8 @@ ns.defaults = {
   includeDeposit = true,
   -- Igual que la interfaz de Blizzard: si el precio confirmado sube más de un 5 %, no se compra.
   maxPriceIncrease = 1.05,
+  -- Columna por la que se ordena la tabla de recetas (ver Session.SORT_KEYS).
+  sortKey = "profit",
 }
 
 ns.FACTION_CUT = 0.05

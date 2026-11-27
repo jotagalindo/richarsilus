@@ -39,11 +39,28 @@ function Region:Hide() self.shown = false end
 function Region:SetShown(shown)
   if shown then self:Show() else self:Hide() end
 end
-function Region:SetText(text) self.text = text end
+-- Un botón con SetFontString muestra su texto en esa FontString, como en el juego.
+function Region:SetText(text)
+  self.text = text
+  if self.fontString then
+    self.fontString.text = text
+  end
+end
 function Region:GetText() return self.text end
-function Region:Enable() self.enabled = true end
-function Region:Disable() self.enabled = false end
-function Region:SetEnabled(enabled) self.enabled = enabled and true or false end
+function Region:SetFontString(fontString) self.fontString = fontString end
+-- Como en el juego, cambiar el estado de un botón ejecuta OnEnable / OnDisable.
+function Region:SetEnabled(enabled)
+  local wasEnabled = self.enabled
+  self.enabled = enabled and true or false
+  if wasEnabled ~= self.enabled then
+    local handler = self.scripts[self.enabled and "OnEnable" or "OnDisable"]
+    if handler then
+      handler(self)
+    end
+  end
+end
+function Region:Enable() self:SetEnabled(true) end
+function Region:Disable() self:SetEnabled(false) end
 function Region:IsEnabled() return self.enabled end
 -- `point` es el último anclaje y `points` todos (una región puede anclarse por dos esquinas).
 function Region:SetPoint(...)
@@ -62,17 +79,34 @@ function Region:SetSize(width, height)
   self.height = height
 end
 function Region:SetWidth(width) self.width = width end
+function Region:SetHeight(height) self.height = height end
 function Region:SetJustifyH(justify) self.justifyH = justify end
 function Region:SetJustifyV(justify) self.justifyV = justify end
 function Region:SetSpacing(spacing) self.spacing = spacing end
 function Region:SetWordWrap(wordWrap) self.wordWrap = wordWrap end
-function Region:SetColorTexture(red, green, blue, alpha) self.color = { red, green, blue, alpha or 1 } end
+function Region:SetColorTexture(red, green, blue, alpha)
+  self.color = { red, green, blue, alpha or 1 }
+  self.texture = nil
+end
+function Region:SetTexture(texture)
+  self.texture = texture
+  self.color = nil
+end
+function Region:SetTextColor(red, green, blue, alpha) self.textColor = { red, green, blue, alpha or 1 } end
 function Region:RegisterEvent(event)
   self.events[event] = true
   stub.eventFrames[#stub.eventFrames + 1] = self
 end
-function Region:CreateFontString(_, _, template) return newRegion("FontString", self, template) end
-function Region:CreateTexture() return newRegion("Texture", self) end
+function Region:CreateFontString(_, layer, template)
+  local fontString = newRegion("FontString", self, template)
+  fontString.layer = layer
+  return fontString
+end
+function Region:CreateTexture(_, layer)
+  local texture = newRegion("Texture", self)
+  texture.layer = layer
+  return texture
+end
 function Region:Click(...)
   assert(self.enabled, "clicked a disabled button: " .. tostring(self.text))
   self.scripts.OnClick(self, ...)
@@ -81,6 +115,7 @@ end
 local NO_OPS = {
   "SetFrameStrata", "SetBackdrop", "SetClampedToScreen", "SetMovable", "EnableMouse",
   "RegisterForDrag", "StartMoving", "StopMovingOrSizing", "SetHighlightTexture", "EnableMouseWheel",
+  "SetTexCoord",
 }
 for _, name in ipairs(NO_OPS) do
   Region[name] = function() end
@@ -117,8 +152,20 @@ function stub.install(options)
   _G.GetTime = function() return stub.now end
   _G.time = function() return 1700000000 end
   _G.IsShiftKeyDown = function() return false end
+  -- Hora en UTC para que las pruebas y las capturas no dependan de la zona horaria.
+  _G.date = function(format, when) return os.date("!" .. format, when) end
+  stub.tooltip = { shown = false, lines = {} }
+  _G.GameTooltip = {
+    SetOwner = function(_, owner) stub.tooltip.owner = owner end,
+    SetItemByID = function(_, itemID) stub.tooltip.itemID = itemID end,
+    SetText = function(_, text) stub.tooltip.title = text end,
+    AddLine = function(_, text) stub.tooltip.lines[#stub.tooltip.lines + 1] = text end,
+    Show = function() stub.tooltip.shown = true end,
+    Hide = function()
+      stub.tooltip = { shown = false, lines = {} }
+    end,
+  }
   _G.NUM_BAG_SLOTS = 4
-  _G.BACKDROP_DIALOG_32_32 = {}
   _G.UISpecialFrames = {}
   _G.SlashCmdList = {}
   _G.RicharsilusDB = nil
@@ -145,6 +192,7 @@ function stub.install(options)
 
   _G.C_Item = {
     GetItemNameByID = function(itemID) return options.itemNames[itemID] end,
+    GetItemIconByID = function(itemID) return 100000 + itemID end,
     -- Solo interesa el precio de venta al vendedor (11.º valor); sin él, el objeto "no está cargado".
     GetItemInfo = function(itemID)
       local sellPrice = options.sellPrices and options.sellPrices[itemID]

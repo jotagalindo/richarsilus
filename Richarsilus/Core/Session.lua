@@ -62,19 +62,57 @@ function Session:Evaluate(recipe, crafts)
   return ns.Pricing.Evaluate(recipe, crafts, self:Context())
 end
 
-local function compareResults(first, second)
-  local firstOrder = STATUS_ORDER[first.status]
-  local secondOrder = STATUS_ORDER[second.status]
-  if firstOrder ~= secondOrder then
-    return firstOrder < secondOrder
-  end
-  if first.status == "ok" and first.profit ~= second.profit then
-    return first.profit > second.profit
-  end
-  return (first.recipe.name or "") < (second.recipe.name or "")
+-- Columnas por las que se puede ordenar la tabla. Cada una tiene su orden natural (el que más interesa
+-- arriba): beneficio, margen, venta y "puedes" de mayor a menor; coste de menor a mayor; nombre de la A a la Z.
+Session.SORT_KEYS = {
+  profit = { field = "profit", descending = true },
+  margin = { field = "margin", descending = true },
+  sale = { field = "salePrice", descending = true },
+  cost = { field = "materialCost", descending = false },
+  have = { field = "craftable", descending = true },
+  product = { field = "name", descending = false },
+}
+
+local function resultName(result)
+  return result.recipe.name or ""
 end
 
--- Evalúa un crafteo de cada receta conocida y las ordena: rentables primero, por beneficio.
+local function sortValue(result, field)
+  if field == "name" then
+    return resultName(result)
+  end
+  return result[field]
+end
+
+-- Ordena `results` por la columna `key` (ver SORT_KEYS). Las recetas sin precio de venta o con
+-- materiales sin precio van siempre al final, para que lo rentable quede arriba en cualquier orden.
+function Session.SortResults(results, key)
+  local sortKey = Session.SORT_KEYS[key] or Session.SORT_KEYS.profit
+  local field = sortKey.field
+  table.sort(results, function(first, second)
+    local firstOrder = STATUS_ORDER[first.status]
+    local secondOrder = STATUS_ORDER[second.status]
+    if firstOrder ~= secondOrder then
+      return firstOrder < secondOrder
+    end
+    local firstValue = sortValue(first, field)
+    local secondValue = sortValue(second, field)
+    if firstValue ~= nil and secondValue ~= nil and firstValue ~= secondValue then
+      if sortKey.descending then
+        return firstValue > secondValue
+      end
+      return firstValue < secondValue
+    end
+    if (firstValue == nil) ~= (secondValue == nil) then
+      return firstValue ~= nil
+    end
+    return resultName(first) < resultName(second)
+  end)
+  return results
+end
+
+-- Evalúa un crafteo de cada receta conocida y las ordena: rentables primero, por beneficio
+-- (o por la columna elegida en los ajustes).
 function Session:EvaluateAll()
   local context = self:Context()
   local results = {}
@@ -83,8 +121,7 @@ function Session:EvaluateAll()
     result.craftable = ns.Pricing.MaxCraftable(recipe, context.owned)
     results[#results + 1] = result
   end
-  table.sort(results, compareResults)
-  return results
+  return Session.SortResults(results, self.settings.sortKey)
 end
 
 -- Siguiente compra en la subasta para cubrir los materiales de `result`, o nil si no falta nada.

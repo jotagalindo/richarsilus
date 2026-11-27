@@ -16,13 +16,21 @@ casa de subastas y vendiendo el resultado allí mismo, y te ayuda a hacerlo: un 
 ![Ventana de Richarsilus con la tabla de recetas y el detalle de Elixir de la mangosta](docs/images/ui-main.png)
 
 > Las imágenes se generan con el código real del addon ejecutado sobre un cliente simulado y datos de ejemplo
-> (`tools/ui-preview`). La disposición, los textos, los cálculos y los botones activos son los del addon; los
-> precios son inventados y el estilo imita al del juego, así que en el juego cambian las fuentes y los bordes.
+> (`tools/ui-preview`). La disposición, los textos, los colores, los cálculos y los botones activos son los del addon;
+> los precios son inventados, la fuente imita a la del juego y los iconos de los objetos se dibujan como cuadrados de
+> color (en el juego salen los iconos de verdad).
 
-**Arriba:** **Escanear** consulta en la subasta los materiales y productos de tus recetas. El botón de la derecha
-muestra la comisión que se aplica (5 % o 15 %, detectada por la zona) y al pulsarlo la cambia: auto → 5 % → 15 %.
+La ventana tiene un tema oscuro propio (no depende de las texturas de Blizzard) y se lee de arriba abajo, en el orden
+en el que se usa:
 
-**Tabla:** una fila por receta, ordenadas de más a menos beneficio:
+**Barra superior:** **Escanear** consulta en la subasta los materiales y productos de tus recetas. A su lado, la
+barra de estado dice qué hacer (abrir la profesión, abrir la subasta, escanear), muestra el progreso del escaneo y,
+al terminar, la hora de los precios. El botón de la derecha muestra la comisión que se aplica (5 % o 15 %, detectada
+por la zona) y al pulsarlo la cambia: auto → 5 % → 15 %. Junto al título, cuántas recetas son rentables.
+
+**Tabla:** una fila por receta con el icono del producto, ordenada por **beneficio**. Pulsa la cabecera de una columna
+para ordenar por ella (se recuerda entre sesiones); la columna activa queda subrayada. Las recetas sin precio quedan
+siempre al final. Al pasar el ratón por una fila sale el tooltip del objeto.
 
 | Columna | Qué indica |
 |---|---|
@@ -33,19 +41,21 @@ muestra la comisión que se aplica (5 % o 15 %, detectada por la zona) y al puls
 
 Si no hay nadie vendiendo el producto aparece *sin venta*; si falta el precio de algún material, *sin precio*.
 
-**Detalle de la receta elegida** (clic en una fila):
+**Detalle de la receta elegida** (la más rentable al abrir; clic en otra fila para cambiarla):
 
-- **− x5 +**: aquí eliges **cuántos crafteos** quieres hacer (Mayús + clic = de 10 en 10, hasta 200). Todo lo
+- **Crafteos − 5 +**: aquí eliges **cuántos crafteos** quieres hacer (Mayús + clic = de 10 en 10, hasta 200). Todo lo
   demás se recalcula para esa cantidad.
-- **Materiales**: para cada uno, cuánto necesitas, cuánto tienes, cuánto **te falta comprar**, dónde conviene
-  comprarlo (subasta o vendedor) y lo que vas a **pagar** por eso.
-- **Lista de la compra**: todo lo que hay que comprar de una vez: en la subasta (lo va comprando el botón
-  **Comprar**, un material por clic), al vendedor (lo compras tú al hablar con él), lo que no se puede comprar porque
-  no hay suficientes subastas, y el total a gastar.
-- **Resumen**: venta total, comisión, depósito, materiales y el **beneficio** final de todos los crafteos. En
-  *materiales* cuenta también lo que ya tienes, valorado a precio de mercado.
+- **Materiales**: una tabla con lo que necesitas, lo que tienes (en verde si te basta), lo que **te falta comprar**,
+  dónde conviene comprarlo (subasta o vendedor) y lo que vas a **pagar**.
+- **Lista de la compra**: lo que hay que comprar en la subasta (lo va comprando el botón **Comprar**, un material por
+  clic), al vendedor (lo compras tú al hablar con él), lo que no se puede comprar porque no hay suficientes subastas,
+  y el total a gastar.
+- **Resultado**: venta, comisión, depósito, materiales y el **beneficio** final de todos los crafteos, como una
+  factura. En *materiales* cuenta también lo que ya tienes, valorado a precio de mercado. El tooltip del depósito
+  explica si es el del juego, uno estimado o uno aún desconocido.
 
-**Botones de abajo** (cada clic hace una sola cosa):
+**Botones de abajo** (cada clic hace una sola cosa). El botón del **siguiente paso** que te conviene se pinta en dorado
+y la línea de encima te lo explica (o muestra el error si algo ha fallado). Todos los botones tienen tooltip.
 
 | Botón | Qué hace |
 |---|---|
@@ -132,6 +142,8 @@ cliente simulado, pero no en el cliente real. La primera vez que lo uses, fíjat
 - Que tras abrir la profesión aparezca el mensaje de recetas guardadas.
 - Que la comisión mostrada coincida con la casa de subastas en la que estás (si no, cámbiala con el botón).
 - Que el depósito mostrado coincida con el que enseña la ventana de venta de Blizzard.
+- Que la ventana se vea como en las imágenes: iconos de los objetos, colores de las monedas, tooltips al pasar el
+  ratón (también sobre botones desactivados) y el botón del siguiente paso en dorado.
 
 Si algo falla, `/console scriptErrors 1` muestra los errores de Lua en pantalla.
 
@@ -202,9 +214,11 @@ estable será la `1.0.0`.
 | `Core/Session.lua` | Une todo lo anterior para la interfaz |
 | `Core/Commands.lua` | `/rs` |
 | `Core/Events.lua` | Eventos del juego |
+| `UI/Widgets.lua` | Tema de colores y piezas de la ventana (paneles, botones, iconos, tooltips) |
 | `UI/MainFrame.lua` | Ventana |
 | `tools/package.sh` | Zip de la release |
 | `tools/ui-preview/` | Imágenes de la interfaz del README (`render.ps1` las regenera en `docs/images/`) |
 | `tools/Dockerfile` | Entorno de desarrollo y CI |
 
 Diseño: [docs/superpowers/specs/2026-11-26-richarsilus-design.md](docs/superpowers/specs/2026-11-26-richarsilus-design.md).
+Próximas mejoras propuestas: [docs/propuesta-mejoras.md](docs/propuesta-mejoras.md).

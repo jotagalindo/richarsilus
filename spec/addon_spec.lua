@@ -7,6 +7,11 @@ local VIAL = 6002
 local ELIXIR = 5001
 local RECIPE = 1001
 
+-- Texto sin códigos de color (|cAARRGGBB ... |r), tal y como lo lee el jugador.
+local function plain(text)
+  return (string.gsub(string.gsub(text or "", "|c%x%x%x%x%x%x%x%x", ""), "|r", ""))
+end
+
 local function containsText(list, expected)
   for _, text in ipairs(list) do
     if string.find(text, expected, 1, true) then
@@ -34,6 +39,41 @@ local function fakeTradeSkill()
       }
     end,
   }
+end
+
+-- Fila de la tabla de materiales del detalle con ese nombre, como { name, needed, owned, ... } en texto plano.
+local function materialRow(UI, name)
+  for _, row in ipairs(UI.detail.materialRows) do
+    if row:IsShown() and plain(row.cells.name:GetText()) == name then
+      local cells = {}
+      for key, cell in pairs(row.cells) do
+        cells[key] = plain(cell:GetText())
+      end
+      return cells
+    end
+  end
+  error("no material row for " .. name)
+end
+
+-- Líneas de la lista de la compra como "etiqueta = valor".
+local function shoppingLines(UI)
+  local lines = {}
+  for _, line in ipairs(UI.detail.shopping) do
+    local label = plain(line.label:GetText())
+    if label ~= "" then
+      lines[#lines + 1] = label .. " = " .. plain(line.value:GetText())
+    end
+  end
+  local total = plain(UI.detail.shoppingTotal.label:GetText())
+  if total ~= "" then
+    lines[#lines + 1] = total .. " = " .. plain(UI.detail.shoppingTotal.value:GetText())
+  end
+  return lines
+end
+
+local function receiptLine(UI, key)
+  local line = UI.detail.receipt[key]
+  return plain(line.label:GetText()) .. " = " .. plain(line.value:GetText())
 end
 
 local function commodity(unitPrice, quantity)
@@ -100,15 +140,21 @@ describe("Richarsilus in a simulated client", function()
 
     local row = UI.rows[1]
     assert.are.equal("Elixir de prueba", row.cells.product:GetText())
-    assert.are.equal("80c", row.cells.cost:GetText())
+    assert.are.equal("80c", plain(row.cells.cost:GetText()))
     -- 499 venta - 25 comisión - 80 materiales - 5 depósito = 389
     assert.is_truthy(string.find(row.cells.profit:GetText(), "3s 89c", 1, true))
 
+    -- La receta más rentable queda elegida sin hacer clic.
+    assert.are.equal(RECIPE, UI.selectedRecipeID)
     row:Click()
     assert.are.equal("Comprar 2 Hierba (60c)", UI.detail.buy:GetText())
-    local shoppingText = UI.detail.materials:GetText()
-    assert.is_truthy(string.find(shoppingText, "Subasta (botón Comprar, uno por clic): 2 Hierba = 60c", 1, true))
-    assert.is_truthy(string.find(shoppingText, "Total a gastar: 80c", 1, true))
+    assert.are.equal("primary", UI.detail.buy.style)
+    assert.are.same({
+      Hierba = { name = "Hierba", needed = "2", owned = "0", toBuy = "2", source = "Subasta", cost = "60c" },
+    }, { Hierba = materialRow(UI, "Hierba") })
+    assert.are.same({ "Subasta: 2 Hierba = 60c", "Vendedor: 1 Vial = 20c", "Total a gastar = 80c" }, shoppingLines(UI))
+    assert.are.equal("Siguiente paso: compra los materiales que faltan (un material por clic).",
+      plain(UI.detail.message:GetText()))
 
     -- Compra en dos clics, como la interfaz de Blizzard.
     UI.detail.buy:Click()
@@ -117,6 +163,7 @@ describe("Richarsilus in a simulated client", function()
     stub.fire("COMMODITY_PRICE_UPDATED", 30, 60)
     stub.update(0.2)
     assert.are.equal("Confirmar 60c", UI.detail.buy:GetText())
+    assert.is_true(UI.detail.cancel:IsEnabled())
     UI.detail.buy:Click()
     assert.are.same({ HERB, 2 }, stub.lastCall("ConfirmCommoditiesPurchase").args)
     stub.addToBags(HERB, 2)
@@ -127,15 +174,20 @@ describe("Richarsilus in a simulated client", function()
 
     -- El vial se compra al vendedor: no hay nada más que comprar en la subasta.
     assert.are.equal("Nada que comprar", UI.detail.buy:GetText())
-    local materialsText = UI.detail.materials:GetText()
-    assert.is_truthy(string.find(materialsText, "Hierba: necesitas 2, tienes 2 - ya tienes suficiente", 1, true))
-    assert.is_truthy(string.find(materialsText, "Vial: necesitas 1, tienes 0 - comprar 1 |cffffd200al vendedor|r (20c)", 1, true))
-    assert.is_truthy(string.find(materialsText, "Vendedor|r: 1 Vial = 20c", 1, true))
+    assert.is_false(UI.detail.buy:IsEnabled())
+    local herb = materialRow(UI, "Hierba")
+    assert.are.same({ "2", "2", "-", "En tus bolsas" }, { herb.needed, herb.owned, herb.toBuy, herb.source })
+    local vial = materialRow(UI, "Vial")
+    assert.are.same({ "1", "0", "1", "Vendedor", "20c" }, { vial.needed, vial.owned, vial.toBuy, vial.source, vial.cost })
+    assert.are.same({ "Vendedor: 1 Vial = 20c", "Total a gastar = 20c" }, shoppingLines(UI))
+    assert.are.equal("Compra al vendedor de tu profesión: 1 Vial.", plain(UI.detail.message:GetText()))
 
     stub.addToBags(VIAL, 1)
     stub.fire("BAG_UPDATE_DELAYED")
     stub.update(0.2)
     assert.are.equal("Craftear 1", UI.detail.craft:GetText())
+    assert.are.equal("primary", UI.detail.craft.style)
+    assert.are.equal("secondary", UI.detail.buy.style)
     UI.detail.craft:Click()
     assert.are.same({ RECIPE, 1 }, stub.lastCall("CraftRecipe").args)
 
@@ -151,13 +203,16 @@ describe("Richarsilus in a simulated client", function()
     end)())
     assert.are.equal("Abre la ventana de Alquimia para craftear.", UI.message)
 
+    -- El crafteo gasta los materiales y deja el elixir en las bolsas.
+    stub.bags = { [0] = {}, [1] = {}, [2] = {}, [3] = {}, [4] = {} }
     stub.addToBags(ELIXIR, 1)
     stub.fire("BAG_UPDATE_DELAYED")
     stub.update(0.2)
     assert.are.equal("Publicar 1", UI.detail.post:GetText())
+    assert.are.equal("primary", UI.detail.post.style)
     UI.detail.post:Click()
     local postCall = stub.lastCall("PostCommodity")
-    assert.are.same({ { bag = 0, slot = 3 }, 2, 1, 499 }, postCall.args)
+    assert.are.same({ { bag = 0, slot = 1 }, 2, 1, 499 }, postCall.args)
     stub.fire("AUCTION_HOUSE_AUCTION_CREATED", 99)
     assert.is_true(containsText(stub.chat, "Publicado: Elixir de prueba."))
 
@@ -198,26 +253,76 @@ describe("Richarsilus in a simulated client", function()
     ns.priceDB:SetListings(ELIXIR, { { unitPrice = 500, quantity = 1, own = false, auctionID = 7, buyout = 500 } }, false)
     stub.update(0.2)
     UI.rows[1]:Click()
-    assert.is_truthy(string.find(UI.detail.summary:GetText(), "depósito -? (desconocido hasta que tengas uno en las bolsas)", 1, true))
+    assert.are.equal("Depósito (desconocido) = ?", receiptLine(UI, "deposit"))
+    assert.are.equal("Desconocido hasta que tengas uno en las bolsas: el juego solo lo da para lo que llevas.",
+      UI.detail.depositRow.tooltip.lines[1])
 
     stub.addToBags(ELIXIR, 1)
     stub.fire("BAG_UPDATE_DELAYED")
     stub.update(0.2)
-    assert.is_truthy(string.find(UI.detail.summary:GetText(), "depósito -5c |", 1, true))
+    assert.are.equal("Depósito = -5c", receiptLine(UI, "deposit"))
 
     stub.bags = { [0] = {}, [1] = {}, [2] = {}, [3] = {}, [4] = {} }
     stub.fire("BAG_UPDATE_DELAYED")
     stub.update(0.2)
-    assert.is_truthy(string.find(UI.detail.summary:GetText(), "depósito -5c |", 1, true))
+    assert.are.equal("Depósito = -5c", receiptLine(UI, "deposit"))
     assert.are.equal(5, RicharsilusDB.deposits.items[ELIXIR]["2:faction"])
   end)
 
   it("asks to learn recipes before scanning", function()
     stub.fire("PLAYER_LOGIN")
     stub.fire("AUCTION_HOUSE_SHOW")
-    UI.scanButton:Click()
+    assert.is_false(UI.scanButton:IsEnabled())
+    assert.are.equal("Abre una vez la ventana de tu profesión para que aprenda tus recetas.", UI.statusText:GetText())
+    assert.is_truthy(string.find(UI.emptyText:GetText(), "Aún no conozco tus recetas", 1, true))
+    assert.is_false(UI.detail.content:IsShown())
+    SlashCmdList.RICHARSILUS("escanear")
     assert.is_true(containsText(stub.chat, "Abre una vez la ventana de tu profesión"))
     assert.are.same({}, stub.sentQueries)
+  end)
+
+  it("shows the scan progress and the time of the last full scan", function()
+    stub.fire("PLAYER_LOGIN")
+    stub.fire("TRADE_SKILL_SHOW")
+    stub.fire("MERCHANT_SHOW")
+    stub.fire("AUCTION_HOUSE_SHOW")
+    assert.are.equal("Pulsa Escanear para consultar los precios actuales de la subasta.", UI.statusText:GetText())
+    assert.are.equal("primary", UI.scanButton.style)
+    UI.scanButton:Click()
+    UI.FlushRefresh()
+    assert.are.equal("Escaneando 0/3...", UI.statusText:GetText())
+    assert.is_false(UI.scanButton:IsEnabled())
+    runScan(ns)
+    stub.update(0.2)
+    -- time() del cliente simulado = 1700000000 = 22:13 UTC.
+    assert.are.equal("Precios de las 22:13", UI.statusText:GetText())
+    assert.are.equal("secondary", UI.scanButton.style)
+    assert.are.equal("Rentables: 1 de 1", UI.subtitle:GetText())
+  end)
+
+  it("sorts the table when a column header is clicked and remembers it", function()
+    stub.fire("PLAYER_LOGIN")
+    stub.fire("TRADE_SKILL_SHOW")
+    stub.fire("AUCTION_HOUSE_SHOW")
+    UI.headers.cost:Click()
+    assert.are.equal("cost", RicharsilusDB.settings.sortKey)
+    assert.is_true(UI.headers.cost.underline:IsShown())
+    assert.is_false(UI.headers.profit.underline:IsShown())
+  end)
+
+  it("explains buttons and items with tooltips", function()
+    stub.fire("PLAYER_LOGIN")
+    stub.fire("TRADE_SKILL_SHOW")
+    stub.fire("AUCTION_HOUSE_SHOW")
+    UI.cutButton:GetScript("OnEnter")(UI.cutButton)
+    assert.are.equal("Comisión de la casa de subastas", stub.tooltip.title)
+    assert.is_true(stub.tooltip.shown)
+    UI.cutButton:GetScript("OnLeave")(UI.cutButton)
+    assert.is_false(stub.tooltip.shown)
+
+    UI.rows[1]:GetScript("OnEnter")(UI.rows[1])
+    assert.are.equal(ELIXIR, stub.tooltip.itemID)
+    assert.is_true(UI.rows[1].hover:IsShown())
   end)
 
   it("toggles the window with the slash command", function()
